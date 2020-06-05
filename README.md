@@ -105,37 +105,32 @@ Open your root `_layout.svelte` (or create one)
 </script>
 
 <script>
-    import { onMount } from "svelte";
-    import { stores } from "@sapper/app";
-    import { silentRenew, pathGuard } from "sapper-oidc/lib/client";
-    import { authPath, refreshPath, protectedPaths} from "../OIDCConfig";
-    const { page } = stores();
+  import { onMount } from "svelte";
+  import { stores } from "@sapper/app";
+  import { silentRenew, pathGuard } from "sapper-oidc/lib/client";
+  import { authPath, refreshPath, protectedPaths } from "../OIDCConfig";
+  const { page } = stores();
 
-    export let session;
+  export let user;
 
-    $: {
-        if(session) {
-            console.log(session); // You can see what data you get 👩‍🔬
-        }
+  $: {
+    if (user) {
+      console.log(user); // You can see what data you get 👩‍🔬
     }
-    onMount(async() => {
-        /* You can see the callback function assign "e" to "user",
+  }
+  onMount(async () => {
+    /* You can see the callback function assign "e" to "user",
         "e" is the data returned when a token is refreshed, it is
-        the same structure as "session" */
-        await silentRenew(refreshPath, e => (user = e), user);
-        page.subscribe(async ({ path }) => {
-            /* If a user navigate client side to a route that you
+        the same structure as "user" returned before */
+    await silentRenew(refreshPath, e => (user = e), user);
+    page.subscribe(async ({ path }) => {
+      /* If a user navigate client side to a route that you
             configured to be available only to logged in user,
             pathGuard will ensure that. */
-            pathGuard(
-                authPath,
-                path,
-                protectedPaths,
-                user
-            );
-        });
+      pathGuard(authPath, path, protectedPaths, user);
     });
+  });
 </script>
 ```
 
-I'd recommend that you create a Svelte store to store the data you get back from "session", and then you update it with the new data that you get from the callback function in "silentRenew".
+I'd recommend that you create a Svelte store to store the data you get back from "user", and then you update it with the new data that you get from the callback function in "silentRenew".
