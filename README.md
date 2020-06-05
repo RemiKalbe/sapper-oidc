@@ -1,4 +1,4 @@
-<img align="center" src="https://i.imgur.com/Pv05YSp.png" alt="logo of the package">
+![logo of the package](https://i.imgur.com/Pv05YSp.png)
 # Sapper OIDC
 This library is based on top of [node-openid-client](https://github.com/panva/node-openid-client) and allow you to quickly and effortlessly add OIDC to your sapper application. <br>
 ## Introduction
