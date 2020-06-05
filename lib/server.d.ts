@@ -13,15 +13,7 @@ interface Options {
     callbackPath: string;
     scope: string;
     refreshPath: string;
-    forcedRefreshPath: string;
-    redisOption: {
-        host?: string;
-        port?: number;
-        path?: string;
-        password?: string;
-        family?: string;
-        tls?: any;
-    };
+    redisURL?: string;
     domain?: string;
 }
 export declare class SapperOIDCClient {
@@ -41,7 +33,6 @@ export declare class SapperOIDCClient {
     private authSuccessfulRedirectPath;
     private authFailedRedirectPath;
     private refreshPath;
-    private forcedRefreshPath;
     private scope;
     private ok;
     constructor(options: Options);

@@ -110,7 +110,6 @@ export class SapperOIDCClient {
           SID !== undefined &&
           SID !== null
         ) {
-          if (dev) console.log("Has a SID cookie");
           try {
             const { toBrowser, toStore } = await getRefreshedTokenSetAndClaims(
               token,
@@ -119,11 +118,9 @@ export class SapperOIDCClient {
             await updateToStore(SID, toStore, this.redis);
             req.user = toBrowser;
             if (path === this.refreshPath) {
-              if (dev) console.log("/refresh");
               res.end(JSON.stringify(toBrowser));
             }
             userHasValidSession = true;
-            if (dev) console.log("Has a valid session");
           } catch (error) {
             if (dev) console.log(error);
             next();
@@ -132,7 +129,6 @@ export class SapperOIDCClient {
 
         if (!userHasValidSession) {
           if (path === this.authPath) {
-            if (dev) console.log("/auth");
             // We create a state that is saved to the DB and to a cookie, it will be used later
             // to validate that no one stoled the access code.
             const state = generators.state();
@@ -157,7 +153,6 @@ export class SapperOIDCClient {
             });
             res.redirect(redirectURL);
           } else if (path === this.callbackPath) {
-            if (dev) console.log("/cb");
             const params = this.client.callbackParams(req);
             const stateID = parseCookie(req.headers.cookie).state;
             if (stateID === undefined || stateID === "")
@@ -222,7 +217,6 @@ export class SapperOIDCClient {
               res.redirect(this.authFailedRedirectPath);
             }
           } else if (isProtectedPath(path, this.protectedPaths)) {
-            if (dev) console.log("protected path");
             res.redirect(this.authPath);
           }
         }
