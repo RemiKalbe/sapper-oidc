@@ -33,28 +33,35 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
 
 export const authPath = "/auth"; // This route initiate the OIDC flow.
 export const refreshPath = "/refresh"; // This is the route that will be called when tokens need to be refreshed
-export const protectedPaths = [ // This array stores all the routes where the user MUST be logged in, if not he will be redirected to the identity provider.
-    {path: "/private-info", recursive: true /* This means that all route starting with /private-info requires the user to be logged in*/ },
-    {path: "/privateOnlyHere", recursive: false /* This means that only /privateOnlyHere requires the user to be logged in, /privateOnlyHere/1234569 doesn't require the user to be logged in*/ }
-    ];
+export const protectedPaths = [
+  // This array stores all the routes where the user MUST be logged in, if not he will be redirected to the identity provider.
+  {
+    path: "/private-info",
+    recursive: true /* This means that all route starting with /private-info requires the user to be logged in*/,
+  },
+  {
+    path: "/privateOnlyHere",
+    recursive: false /* This means that only /privateOnlyHere requires the user to be logged in, /privateOnlyHere/1234569 doesn't require the user to be logged in*/,
+  },
+];
 
 const options = {
-    issuerURL: "https://accounts.google.com/", // See your identity provider documentation
-    clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
-    clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
-    redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
-    sessionMaxAge: 60*60*24*7, // How long does a user's session lives for (in seconds)
-    authRequestMaxAge: 60*60 // How much time before an auth request is deemed invalid (in seconds).
-    authPath,
-    refreshPath,
-    protectedPaths,
-    authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
-    authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
-    callbackPath: "/cb", // The route of the callback
-    scope: "openid profile offline_access", // You must have at least openid and offline_access
-    redisURL: "" // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
-    // It default to: 127.0.0.1:6379 with no password
-}
+  issuerURL: "https://accounts.google.com/", // See your identity provider documentation
+  clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
+  clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
+  redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
+  sessionMaxAge: 60 * 60 * 24 * 7, // How long does a user's session lives for (in seconds)
+  authRequestMaxAge: 60 * 60, // How much time before an auth request is deemed invalid (in seconds).
+  authPath,
+  refreshPath,
+  protectedPaths,
+  authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
+  authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
+  callbackPath: "/cb", // The route of the callback
+  scope: "openid profile offline_access", // You must have at least openid and offline_access
+  redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
+  // It default to: 127.0.0.1:6379 with no password
+};
 export const client = new SapperOIDCClient(options);
 ```
 
@@ -113,7 +120,7 @@ Open your root `_layout.svelte` (or create one)
             console.log(session); // You can see what data you get 👩‍🔬
         }
     }
-    onMount(() => {
+    onMount(async() => {
         /* You can see the callback function assign "e" to "user",
         "e" is the data returned when a token is refreshed, it is
         the same structure as "session" */
