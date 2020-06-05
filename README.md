@@ -29,8 +29,6 @@ npm i sapper-oidc // Will not work until v1.0
 in your `/src` create a file, for example named `OIDCConfig.js` and add the following:
 
 ```js
-import { SapperOIDCClient } from "sapper-oidc/lib/server";
-
 export const authPath = "/auth"; // This route initiate the OIDC flow.
 export const refreshPath = "/refresh"; // This is the route that will be called when tokens need to be refreshed
 export const protectedPaths = [
@@ -44,25 +42,6 @@ export const protectedPaths = [
     recursive: false /* This means that only /privateOnlyHere requires the user to be logged in, /privateOnlyHere/1234569 doesn't require the user to be logged in*/,
   },
 ];
-
-const options = {
-  issuerURL: "https://accounts.google.com/", // See your identity provider documentation
-  clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
-  clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
-  redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
-  sessionMaxAge: 60 * 60 * 24 * 7, // How long does a user's session lives for (in seconds)
-  authRequestMaxAge: 60 * 60, // How much time before an auth request is deemed invalid (in seconds).
-  authPath,
-  refreshPath,
-  protectedPaths,
-  authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
-  authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
-  callbackPath: "/cb", // The route of the callback
-  scope: "openid profile offline_access", // You must have at least openid and offline_access
-  redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
-  // It default to: 127.0.0.1:6379 with no password
-};
-export const client = new SapperOIDCClient(options);
 ```
 
 ### Server side configuration
@@ -71,9 +50,28 @@ You need to wrap all your code in an immediately invoked async function<br>
 server.js
 
 ```js
-import { client } from "./OIDCConfig"; // The file we just created
+import { authPath, refreshPath, protectedPaths } from "./OIDCConfig"; // The file we just created
+import { SapperOIDCClient } from "sapper-oidc/lib/server";
 
 (async function () {
+  const options = {
+    issuerURL: "https://accounts.google.com/", // See your identity provider documentation
+    clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
+    clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
+    redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
+    sessionMaxAge: 60 * 60 * 24 * 7, // How long does a user's session lives for (in seconds)
+    authRequestMaxAge: 60 * 60, // How much time before an auth request is deemed invalid (in seconds).
+    authPath,
+    refreshPath,
+    protectedPaths,
+    authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
+    authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
+    callbackPath: "/cb", // The route of the callback
+    scope: "openid profile offline_access", // You must have at least openid and offline_access
+    redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
+    // It default to: 127.0.0.1:6379 with no password
+  };
+  const client = new SapperOIDCClient(options);
   await client.init(); // Don't forget it 🚦
 
   polka()
