@@ -8,7 +8,7 @@ import {
 import redis from "async-redis";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import { v4 as uuidv4 } from "uuid";
-import { ProtectedPath, isProtectedPath, mustAuth } from "./both";
+import { ProtectedPath, isProtectedPath } from "./both";
 
 const { NODE_ENV } = process.env;
 const dev = NODE_ENV === "development";
@@ -27,15 +27,7 @@ interface Options {
   callbackPath: string;
   scope: string;
   refreshPath: string;
-  forcedRefreshPath: string;
-  redisOption: {
-    host?: string;
-    port?: number;
-    path?: string;
-    password?: string;
-    family?: string;
-    tls?: any;
-  };
+  redisURL?: string;
   domain?: string;
 }
 
@@ -56,7 +48,6 @@ export class SapperOIDCClient {
   private authSuccessfulRedirectPath: string;
   private authFailedRedirectPath: string;
   private refreshPath: string;
-  private forcedRefreshPath: string;
   private scope: string;
   private ok!: boolean;
 
@@ -68,14 +59,15 @@ export class SapperOIDCClient {
     this.issuerURL = options.issuerURL;
     this.sessionMaxAge = options.sessionMaxAge;
     this.authRequestMaxAge = options.authRequestMaxAge;
-    this.redis = redis.createClient(options.redisOption);
+    this.redis = options.redisURL
+      ? redis.createClient({ url: options.redisURL })
+      : redis.createClient();
     this.authPath = options.authPath;
     this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
     this.authFailedRedirectPath = options.authFailedRedirectPath;
     this.refreshPath = options.refreshPath;
-    this.forcedRefreshPath = options.forcedRefreshPath;
     this.domain = options.domain ? options.domain : "";
     this.scope = options.scope;
   }
@@ -229,7 +221,7 @@ export class SapperOIDCClient {
             } catch (error) {
               res.redirect(this.authFailedRedirectPath);
             }
-          } else if (mustAuth(path, this.protectedPaths)) {
+          } else if (isProtectedPath(path, this.protectedPaths)) {
             if (dev) console.log("protected path");
             res.redirect(this.authPath);
           }

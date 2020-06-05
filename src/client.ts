@@ -1,4 +1,4 @@
-import { ProtectedPath, mustAuth } from "./both";
+import { ProtectedPath, isProtectedPath } from "./both";
 
 export async function silentRenew(
   refreshPath: string,
@@ -38,7 +38,10 @@ export function pathGuard(
     };
   }
 ) {
-  if (mustAuth(path, protectedPath) && (user === null || user === undefined)) {
+  if (
+    isProtectedPath(path, protectedPath) &&
+    (user === null || user === undefined)
+  ) {
     window.location.pathname = authPath;
   }
 }
