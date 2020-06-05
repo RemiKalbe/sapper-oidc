@@ -15,6 +15,7 @@ interface Options {
     refreshPath: string;
     redisURL?: string;
     domain?: string;
+    debug?: boolean;
 }
 export declare class SapperOIDCClient {
     private clientID;
@@ -35,6 +36,7 @@ export declare class SapperOIDCClient {
     private refreshPath;
     private scope;
     private ok;
+    private debug;
     constructor(options: Options);
     init(): Promise<void>;
     middleware(): (req: any, res: any, next: any) => Promise<void>;
