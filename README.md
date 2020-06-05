@@ -9,6 +9,12 @@ This library is based on top of [node-openid-client](https://github.com/panva/no
 More and more browsers are starting to block third party cookies by default, and chrome will too in ~2022. Meaning any type of secure client-side authentication is dead if your identity provider is at a different domain, which is probably the case. <br>
 This library is a way to solve this issue by using the sapper server as a sort of proxy (sort of). <br>
 
+## Limitation
+
+- You can only have one identity provider
+- You can only use Redis as the session store
+- Route with a "." will be ignored.
+
 ## Installation
 
 🚧🚧🚧 IMPORTANT 🚧🚧🚧<br>
