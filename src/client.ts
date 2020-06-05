@@ -9,10 +9,9 @@ export function silentRenew(
   },
   callback: any
 ) {
-  if (typeof window !== "undefined") {
-    const expIn = raw.expires_at - new Date().getSeconds();
-    setInterval(async () => {
-      return callback(await window.fetch(refreshPath));
-    }, expIn);
-  }
+  const expIn = raw.expires_at - new Date().getSeconds() - 100;
+  console.log("Exp in " + expIn);
+  setInterval(async () => {
+    return callback(await window.fetch(refreshPath));
+  }, expIn);
 }

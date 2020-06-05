@@ -1,3 +1,27 @@
+interface Options {
+    issuerURL: string;
+    clientID: string;
+    clientSecret: string;
+    redirectURI: string;
+    sessionMaxAge: number;
+    authRequestMaxAge: number;
+    authPath: string;
+    protectedPath: string;
+    authSuccessfulRedirectPath: string;
+    authFailedRedirectPath: string;
+    callbackPath: string;
+    scope: string;
+    refreshPath: string;
+    redisOption: {
+        host?: string;
+        port?: number;
+        path?: string;
+        password?: string;
+        family?: string;
+        tls?: any;
+    };
+    domain?: string;
+}
 export declare class SapperOIDCClient {
     private clientID;
     private clientSecret;
@@ -17,14 +41,8 @@ export declare class SapperOIDCClient {
     private refreshPath;
     private scope;
     private ok;
-    constructor(issuerURL: string, clientID: string, clientSecret: string, redirectURI: string, sessionMaxAge: number, authRequestMaxAge: number, authPath: string, protectedPath: string, authSuccessfulRedirectPath: string, authFailedRedirectPath: string, callbackPath: string, scope: string, refreshPath: string, redisOption: {
-        host?: string;
-        port?: number;
-        path?: string;
-        password?: string;
-        family?: string;
-        tls?: any;
-    }, domain?: string);
+    constructor(options: Options);
     init(): Promise<void>;
-    middleware(): ((req: any, res: any, next: any) => Promise<void>) | undefined;
+    middleware(): (req: any, res: any, next: any) => Promise<void>;
 }
+export {};
