@@ -87,7 +87,7 @@ export class SapperOIDCClient {
       // we get the current path without any query string
       const path = req.originalUrl.replace(/\?.*$/, "");
       // We don't want our tokens to be refreshed when the browser fetch static files.
-      if (!path.includes(".")) {
+      if (!path.includes(".") && path !== path.authFailedRedirectPath) {
         // polka doesn't have res.redirect
         res.redirect = (location: string) => {
           let str = `Redirecting to ${location}`;
