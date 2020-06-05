@@ -13,6 +13,7 @@ This library is a way to solve this issue by using the sapper server as a sort o
 
 🚧🚧🚧 IMPORTANT 🚧🚧🚧<br>
 This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
+You MUST have a redis server > v6.0
 
 ```bash
 npm i sapper-oidc // Will not work until v1.0
