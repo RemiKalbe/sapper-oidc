@@ -6,7 +6,7 @@ More and more browsers are starting to block third party cookies by default, and
 This library is a way to solve this issue by using the sapper server as a sort of proxy (sort of). <br>
 ## Installation
 🚧🚧🚧 IMPORTANT 🚧🚧🚧
-This project is in very early developpement, breaking changes, poor docs, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
+This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
 ```bash
 npm i sapper-oidc
 ```
