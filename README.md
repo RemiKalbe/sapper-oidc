@@ -109,9 +109,14 @@ Open your root `_layout.svelte` (or create one)
         }
     }
     onMount(() => {
-        await silentRenew(refreshPath, e => (user = e), user); // You can see the callback function assign "e" to "user";
+        /* You can see the callback function assign "e" to "user",
+        "e" is the data returned when a token is refreshed, it is
+        the same structure as "session" */
+        await silentRenew(refreshPath, e => (user = e), user);
         page.subscribe(async ({ path }) => {
-            // If a user navigate client side to a route that you configured to be available only to logged in user, pathGuard will ensure that.
+            /* If a user navigate client side to a route that you
+            configured to be available only to logged in user,
+            pathGuard will ensure that. */
             pathGuard(
                 authPath,
                 path,
@@ -123,4 +128,4 @@ Open your root `_layout.svelte` (or create one)
 </script>
 ```
 
-Now, you are free to implement a client side user store how you want.
+I'd recommend that you create a Svelte store to store the data you get back from "session", and then you update it with the new data that you get from the callback function in "silentRenew".
