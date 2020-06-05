@@ -75,12 +75,12 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
   await client.init(); // Don't forget it 🚦
 
   polka()
-    .use(await client.middleware())
+    .use(await client.middleware()) // Don't forget that 🚦
     .use(
       compression({ threshold: 0 }),
       sirv("static", { dev }),
       sapper.middleware({
-        // Don't forget that too 🚦
+        // And finally 🚦
         session: (req, res) => ({
           user: req.user,
         }),
