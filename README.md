@@ -7,19 +7,18 @@ This library is based on top of [node-openid-client](https://github.com/panva/no
 ## Introduction
 
 More and more browsers are starting to block third party cookies by default, and chrome will too in ~2022. Meaning any type of secure client-side authentication is dead if your identity provider is at a different domain, which is probably the case. <br>
-This library is a way to solve this issue by using the sapper server as a sort of proxy (sort of). <br>
+This library is a way to solve this issue by using sapper as a sort of proxy. <br>
 
 ## Limitation
 
-- You can only have one identity provider
-- You can only use Redis as the session store
+- You can only have one identity provider.
+- You can only use Redis as the session store, and it must be >= v6.0.
 - Route with a "." will be ignored.
 
 ## Installation
 
 🚧🚧🚧 IMPORTANT 🚧🚧🚧<br>
 This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
-You MUST have a redis server > v6.0
 
 ```bash
 npm i sapper-oidc // Will not work until v1.0
@@ -44,7 +43,7 @@ const options = {
     clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
     clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
     redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
-    sessionMaxAge: 60*60*24*7, // How long does a user's session live for (in seconds)
+    sessionMaxAge: 60*60*24*7, // How long does a user's session lives for (in seconds)
     authRequestMaxAge: 60*60 // How much time before an auth request is deemed invalid (in seconds).
     authPath,
     refreshPath,
