@@ -1,3 +1,4 @@
+import { ProtectedPath } from "./both";
 interface Options {
     issuerURL: string;
     clientID: string;
@@ -6,12 +7,13 @@ interface Options {
     sessionMaxAge: number;
     authRequestMaxAge: number;
     authPath: string;
-    protectedPath: string;
+    protectedPaths: [ProtectedPath];
     authSuccessfulRedirectPath: string;
     authFailedRedirectPath: string;
     callbackPath: string;
     scope: string;
     refreshPath: string;
+    forcedRefreshPath: string;
     redisOption: {
         host?: string;
         port?: number;
@@ -34,11 +36,12 @@ export declare class SapperOIDCClient {
     private client;
     private redis;
     private authPath;
-    private protectedPath;
+    private protectedPaths;
     private callbackPath;
     private authSuccessfulRedirectPath;
     private authFailedRedirectPath;
     private refreshPath;
+    private forcedRefreshPath;
     private scope;
     private ok;
     constructor(options: Options);

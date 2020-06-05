@@ -8,6 +8,7 @@ import {
 import redis from "async-redis";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import { v4 as uuidv4 } from "uuid";
+import { ProtectedPath, isProtectedPath, mustAuth } from "./both";
 
 const { NODE_ENV } = process.env;
 const dev = NODE_ENV === "development";
@@ -20,12 +21,13 @@ interface Options {
   sessionMaxAge: number;
   authRequestMaxAge: number;
   authPath: string;
-  protectedPath: string;
+  protectedPaths: [ProtectedPath];
   authSuccessfulRedirectPath: string;
   authFailedRedirectPath: string;
   callbackPath: string;
   scope: string;
   refreshPath: string;
+  forcedRefreshPath: string;
   redisOption: {
     host?: string;
     port?: number;
@@ -49,11 +51,12 @@ export class SapperOIDCClient {
   private client!: Client;
   private redis: any;
   private authPath: string;
-  private protectedPath: string;
+  private protectedPaths: [ProtectedPath];
   private callbackPath: string;
   private authSuccessfulRedirectPath: string;
   private authFailedRedirectPath: string;
   private refreshPath: string;
+  private forcedRefreshPath: string;
   private scope: string;
   private ok!: boolean;
 
@@ -67,11 +70,12 @@ export class SapperOIDCClient {
     this.authRequestMaxAge = options.authRequestMaxAge;
     this.redis = redis.createClient(options.redisOption);
     this.authPath = options.authPath;
-    this.protectedPath = options.protectedPath;
+    this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
     this.authFailedRedirectPath = options.authFailedRedirectPath;
     this.refreshPath = options.refreshPath;
+    this.forcedRefreshPath = options.forcedRefreshPath;
     this.domain = options.domain ? options.domain : "";
     this.scope = options.scope;
   }
@@ -88,122 +92,150 @@ export class SapperOIDCClient {
   middleware() {
     if (!this.ok) throw new Error("Middfleware used before initialization");
     return async (req: any, res: any, next: any) => {
+      // we get the current path without any query string
       const path = req.originalUrl.replace(/\?.*$/, "");
+      // We don't want our tokens to be refreshed when the browser fetch static files.
+      if (!path.includes(".")) {
+        // polka doesn't have res.redirect
+        res.redirect = (location: string) => {
+          let str = `Redirecting to ${location}`;
+          res.writeHead(302, {
+            Location: location,
+            "Content-Type": "text/plain",
+            "Content-Length": str.length,
+          });
+          res.end(str);
+        };
 
-      // polka doesn't have res.redirect
-      res.redirect = (location: string) => {
-        let str = `Redirecting to ${location}`;
-        res.writeHead(302, {
-          Location: location,
-          "Content-Type": "text/plain",
-          "Content-Length": str.length,
-        });
-        res.end(str);
-      };
-      if (path === this.authPath) {
-        const state = generators.state();
-        const stateID = uuidv4();
-        await this.redis.set(stateID, state, "EX", this.authRequestMaxAge);
-        res.setHeader(
-          "Set-Cookie",
-          serializeCookie("state", String(stateID), {
-            httpOnly: true,
-            secure: !dev,
-            sameSite: true,
-            maxAge: this.authRequestMaxAge, // 1 week
-            domain: this.domain,
-            path: "/",
-          })
-        );
-
-        const redirectURL = this.client.authorizationUrl({
-          scope: this.scope,
-          code_challenge_method: "S256",
-          state,
-        });
-        res.redirect(redirectURL);
-      } else if (path === this.callbackPath) {
-        const params = this.client.callbackParams(req);
-        const stateID = parseCookie(req.headers.cookie).state;
-        try {
-          if (typeof stateID === "undefined" || stateID === "")
-            throw new Error("No state");
-
-          const state = await this.redis.get(stateID);
-          const tokenSet = await this.client.callback(
-            this.redirectURI,
-            params,
-            {
-              state,
-            }
-          );
-          const resultToStore = {
-            raw: tokenSet,
-            claimed: tokenSet.claims(),
-          };
-          const resultToBrowser = {
-            // We don't want the refresh token to be sent to the browser
-            raw: {
-              access_token: tokenSet.access_token,
-              id_token: tokenSet.id_token,
-              expires_at: tokenSet.expires_at,
-              scope: tokenSet.scope,
-              token_type: tokenSet.token_type,
-            },
-            claimed: tokenSet.claims(),
-          };
-          req.user = resultToBrowser;
-          const SID = uuidv4();
-          await this.redis.set(
-            SID,
-            JSON.stringify(resultToStore),
-            "EX",
-            this.sessionMaxAge
-          );
-          res.setHeader("Set-Cookie", [
-            serializeCookie("SID", String(SID), {
-              httpOnly: true,
-              secure: !dev,
-              sameSite: true,
-              maxAge: this.sessionMaxAge,
-              domain: this.domain,
-              path: "/",
-            }),
-            serializeCookie("state", "", {
-              httpOnly: true,
-              secure: !dev,
-              sameSite: true,
-              maxAge: 1,
-              domain: this.domain,
-              path: "/",
-            }),
-          ]);
-          await this.redis.del(stateID);
-          res.redirect(this.authSuccessfulRedirectPath);
-        } catch (error) {
-          res.redirect(this.authFailedRedirectPath);
-        }
-      } else if (path === this.refreshPath || path === this.protectedPath) {
+        let userHasValidSession = false;
+        // if a session exist, we get the token set, then we refresh the tokens and data,
+        // we then update the DB, and finaly we pass the informations to the sapper middleware.
         const token = await getTokenSetFromCookie(req, this.redis);
         const SID = getSIDFromCookie(req);
-        if (token && SID) {
-          const { toBrowser, toStore } = await getRefreshedTokenSetAndClaims(
-            token,
-            this.client
-          );
-          await updateToStore(SID, toStore, this.redis);
-          if (path === this.protectedPath) {
+        if (
+          token !== undefined &&
+          token !== null &&
+          SID !== undefined &&
+          SID !== null
+        ) {
+          if (dev) console.log("Has a SID cookie");
+          try {
+            const { toBrowser, toStore } = await getRefreshedTokenSetAndClaims(
+              token,
+              this.client
+            );
+            await updateToStore(SID, toStore, this.redis);
             req.user = toBrowser;
+            if (path === this.refreshPath) {
+              if (dev) console.log("/refresh");
+              res.end(JSON.stringify(toBrowser));
+            }
+            userHasValidSession = true;
+            if (dev) console.log("Has a valid session");
+          } catch (error) {
+            if (dev) console.log(error);
             next();
-          } else {
-            res.end(toBrowser);
           }
-        } else {
-          next();
         }
-      } else {
-        next();
+
+        if (!userHasValidSession) {
+          if (path === this.authPath) {
+            if (dev) console.log("/auth");
+            // We create a state that is saved to the DB and to a cookie, it will be used later
+            // to validate that no one stoled the access code.
+            const state = generators.state();
+            const stateID = uuidv4();
+            await this.redis.set(stateID, state, "EX", this.authRequestMaxAge);
+            res.setHeader(
+              "Set-Cookie",
+              serializeCookie("state", String(stateID), {
+                httpOnly: true,
+                secure: !dev,
+                sameSite: true,
+                maxAge: this.authRequestMaxAge,
+                domain: this.domain,
+                path: "/",
+              })
+            );
+            // we then redirect the user to the idp
+            const redirectURL = this.client.authorizationUrl({
+              scope: this.scope,
+              code_challenge_method: "S256",
+              state,
+            });
+            res.redirect(redirectURL);
+          } else if (path === this.callbackPath) {
+            if (dev) console.log("/cb");
+            const params = this.client.callbackParams(req);
+            const stateID = parseCookie(req.headers.cookie).state;
+            if (stateID === undefined || stateID === "")
+              res.redirect(this.authFailedRedirectPath);
+
+            const state = await this.redis.get(stateID);
+            try {
+              const tokenSet = await this.client.callback(
+                this.redirectURI,
+                params,
+                {
+                  state,
+                }
+              );
+              const claimed = tokenSet.claims();
+              const resultToStore = { raw: tokenSet, claimed };
+              const resultToBrowser = {
+                // We don't want the refresh token to be sent to the browser
+                raw: {
+                  access_token: tokenSet.access_token,
+                  id_token: tokenSet.id_token,
+                  expires_at: tokenSet.expires_at,
+                  scope: tokenSet.scope,
+                  token_type: tokenSet.token_type,
+                },
+                claimed,
+              };
+              // The user's data are sent to the browser via the sapper middleware
+              req.user = resultToBrowser;
+
+              // A session is created and the refresh token is stored.
+              const SID = uuidv4();
+              try {
+                await this.redis.set(
+                  SID,
+                  JSON.stringify(resultToStore),
+                  "EX",
+                  this.sessionMaxAge
+                );
+              } catch (error) {
+                res.redirect(this.authFailedRedirectPath);
+              }
+
+              res.setHeader(
+                "Set-Cookie",
+                serializeCookie("SID", String(SID), {
+                  httpOnly: true,
+                  secure: !dev,
+                  sameSite: true,
+                  maxAge: this.sessionMaxAge,
+                  domain: this.domain,
+                  path: "/",
+                })
+              );
+              try {
+                await this.redis.del(stateID);
+              } catch (error) {
+                res.end("Error deleting state from DB");
+              }
+              res.redirect(this.authSuccessfulRedirectPath);
+            } catch (error) {
+              res.redirect(this.authFailedRedirectPath);
+            }
+          } else if (mustAuth(path, this.protectedPaths)) {
+            if (dev) console.log("protected path");
+            res.redirect(this.authPath);
+          }
+        }
       }
+      next();
     };
   }
 }
@@ -218,9 +250,15 @@ async function getTokenSetFromCookie(
 ): Promise<TokenSet | undefined> {
   const SID = getSIDFromCookie(req);
   if (SID) {
-    const json = await redisClient.get(SID);
-    const raw = json ? JSON.parse(json).raw : undefined;
-    return raw ? new TokenSet(raw) : undefined;
+    try {
+      const result = await redisClient.get(SID);
+      const tokenSet = new TokenSet(JSON.parse(result).raw);
+      return tokenSet;
+    } catch (error) {
+      console.log(error);
+      await redisClient.del(SID);
+      return undefined;
+    }
   } else {
     return undefined;
   }
@@ -229,13 +267,11 @@ async function getTokenSetFromCookie(
 async function getRefreshedTokenSetAndClaims(
   tokenSet: TokenSet,
   client: Client
-): Promise<{ toStore: any; toBrowser: any }> {
+): Promise<{ toStore: any | undefined; toBrowser: any }> {
   //TODO: Strict type on return;
   const refreshedTokenSet = await client.refresh(tokenSet);
-  const resultToStore = {
-    raw: refreshedTokenSet,
-    claimed: refreshedTokenSet.claims(),
-  };
+  const claimed = refreshedTokenSet.claims();
+  const resultToStore = { raw: refreshedTokenSet, claimed };
   const resultToBrowser = {
     // We don't want the refresh token to be sent to the browser
     raw: {
@@ -245,9 +281,12 @@ async function getRefreshedTokenSetAndClaims(
       scope: refreshedTokenSet.scope,
       token_type: refreshedTokenSet.token_type,
     },
-    claimed: refreshedTokenSet.claims(),
+    claimed: claimed,
   };
-  return { toStore: resultToStore, toBrowser: resultToBrowser };
+  return {
+    toStore: resultToStore,
+    toBrowser: resultToBrowser,
+  };
 }
 async function updateToStore(SID: string, toStore: any, redisClient: any) {
   await redisClient.set(SID, JSON.stringify(toStore), "KEEPTTL");
