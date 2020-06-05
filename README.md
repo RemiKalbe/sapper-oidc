@@ -28,7 +28,7 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
 export const authPath = "/auth"; // This route initiate the OIDC flow.
 export const refreshPath = "/refresh"; // This is the route that will be called when tokens need to be refreshed
 export const protectedPaths = [ // This array stores all the routes where the user MUST be logged in, if not he will be redirected to the identity provider.
-    {path: "/private-info", recursive: true /* This means that all route starting with /private-info required the user to be logged in*/ },
+    {path: "/private-info", recursive: true /* This means that all route starting with /private-info requires the user to be logged in*/ },
     {path: "/privateOnlyHere", recursive: false /* This means that only /privateOnlyHere requires the user to be logged in, /privateOnlyHere/1234569 doesn't require the user to be logged in*/ }
     ];
 
@@ -45,7 +45,9 @@ const options = {
     authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
     authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
     callbackPath: "/cb", // The route of the callback
-    scope: "openid profile offline_access" // You must have at least openid and offline_access
+    scope: "openid profile offline_access", // You must have at least openid and offline_access
+    redisURL: "" // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
+    // It default to: 127.0.0.1:6379 with no password
 }
 export const client = new SapperOIDCClient(options);
 ```
