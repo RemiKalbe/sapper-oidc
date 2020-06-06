@@ -83,6 +83,9 @@ export class SapperOIDCClient {
       response_types: this.responseTypes,
     });
     this.ok = true;
+    this.redis.on("error", function (err: any) {
+      console.log("Error " + err);
+    });
   }
   middleware() {
     if (!this.ok) throw new Error("Middfleware used before initialization");
@@ -120,24 +123,51 @@ export class SapperOIDCClient {
         ) {
           if (this.debug) log(`has tokens and were successfully retrieved`);
           try {
-            if (this.debug) log(`trying to refresh tokens`);
-            const { toBrowser, toStore } = await getRefreshedTokenSetAndClaims(
-              token,
-              this.client
-            );
-            if (this.debug) log(`tokens successfully refreshed`);
-            if (this.debug) log(`updating tokens to db`);
-            await updateToStore(SID, toStore, this.redis);
-            if (this.debug) log(`tokens successfully saved`);
-            req.user = toBrowser;
-            if (path === this.refreshPath) {
-              if (this.debug) log(`is a refresh request`);
-              res.end(JSON.stringify(toBrowser));
-              if (this.debug) log(`tokens sent to frontend`);
-              if (this.debug) log(`end of request`);
-            } else if (path === this.callbackPath) {
-              res.redirect(this.authSuccessfulRedirectPath);
-              if (this.debug) log(`end of request`);
+            if (
+              token.expires_at &&
+              token.expires_at * 1000 - Date.now() <= 600000
+            ) {
+              if (this.debug) log(`trying to refresh tokens`);
+              const {
+                toBrowser,
+                toStore,
+              } = await getRefreshedTokenSetAndClaims(token, this.client);
+              if (this.debug) log(`tokens successfully refreshed`);
+              if (this.debug) log(`updating tokens to db`);
+              await updateToStore(SID, toStore, this.redis);
+              if (this.debug) log(`tokens successfully saved`);
+              req.user = toBrowser;
+              if (path === this.refreshPath) {
+                if (this.debug) log(`is a refresh request`);
+                res.end(JSON.stringify(toBrowser));
+                if (this.debug) log(`tokens sent to frontend`);
+                if (this.debug) log(`end of request`);
+              } else if (path === this.callbackPath) {
+                res.redirect(this.authSuccessfulRedirectPath);
+                if (this.debug) log(`end of request`);
+              }
+            } else {
+              const toBrowser = {
+                // We don't want the refresh token to be sent to the browser
+                raw: {
+                  access_token: token.access_token,
+                  id_token: token.id_token,
+                  expires_at: token.expires_at,
+                  scope: token.scope,
+                  token_type: token.token_type,
+                },
+                claimed: token.claims(),
+              };
+              req.user = toBrowser;
+              if (path === this.refreshPath) {
+                if (this.debug) log(`is a refresh request`);
+                res.end(JSON.stringify(toBrowser));
+                if (this.debug) log(`tokens sent to frontend`);
+                if (this.debug) log(`end of request`);
+              } else if (path === this.callbackPath) {
+                res.redirect(this.authSuccessfulRedirectPath);
+                if (this.debug) log(`end of request`);
+              }
             }
             userHasValidSession = true;
           } catch (error) {
@@ -198,12 +228,13 @@ export class SapperOIDCClient {
                 const SID = uuidv4();
                 try {
                   await this.redis.set(
-                    SID,
+                    String(SID),
                     JSON.stringify(resultToStore),
                     "EX",
                     this.sessionMaxAge
                   );
                 } catch (error) {
+                  console.log(error);
                   res.redirect(this.authFailedRedirectPath);
                 }
                 if (this.debug) log(`creating SID cookie`);
