@@ -14,7 +14,6 @@ interface Options {
     scope: string;
     refreshPath: string;
     redisURL?: string;
-    domain?: string;
     debug?: boolean;
 }
 export declare class SapperOIDCClient {
@@ -22,7 +21,6 @@ export declare class SapperOIDCClient {
     private clientSecret;
     private redirectURI;
     private responseTypes;
-    private domain;
     private sessionMaxAge;
     private authRequestMaxAge;
     private issuerURL;

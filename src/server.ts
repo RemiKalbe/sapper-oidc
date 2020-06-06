@@ -28,7 +28,6 @@ interface Options {
   scope: string;
   refreshPath: string;
   redisURL?: string;
-  domain?: string;
   debug?: boolean;
 }
 
@@ -37,7 +36,6 @@ export class SapperOIDCClient {
   private clientSecret: string;
   private redirectURI: string;
   private responseTypes: [ResponseType];
-  private domain: string;
   private sessionMaxAge: number;
   private authRequestMaxAge: number;
   private issuerURL: string;
@@ -70,7 +68,6 @@ export class SapperOIDCClient {
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
     this.authFailedRedirectPath = options.authFailedRedirectPath;
     this.refreshPath = options.refreshPath;
-    this.domain = options.domain ? options.domain : "";
     this.scope = options.scope;
     this.debug = options.debug ? options.debug : false;
   }
@@ -90,15 +87,11 @@ export class SapperOIDCClient {
   middleware() {
     if (!this.ok) throw new Error("Middfleware used before initialization");
     return async (req: any, res: any, next: any) => {
-      // we get the current path without any query string
+      // We get the current path without any query string
       const path = req.originalUrl.replace(/\?.*$/, "");
       // We don't want our tokens to be refreshed when the browser fetch static files.
-      if (this.debug) log(`Request ${path}`);
       if (!path.includes(".") && path !== path.authFailedRedirectPath) {
-        if (this.debug)
-          log(`doesn't contain a '.' and isn't the 'authFailedRedirectPath'`);
-
-        // polka doesn't have res.redirect
+        // Polka doesn't have res.redirect
         res.redirect = (location: string) => {
           let str = `Redirecting to ${location}`;
           res.writeHead(302, {
@@ -110,9 +103,7 @@ export class SapperOIDCClient {
         };
 
         let userHasValidSession = false;
-        if (this.debug) log(`getting tokens from request if present`);
-        // if a session exist, we get the token set, then we refresh the tokens and data,
-        // we then update the DB, and finaly we pass the informations to the sapper middleware.
+        // if a session exist, we get the token set
         const token = await getTokenSetFromCookie(req, this.redis);
         const SID = getSIDFromCookie(req);
         if (
@@ -121,146 +112,192 @@ export class SapperOIDCClient {
           SID !== undefined &&
           SID !== null
         ) {
-          if (this.debug) log(`has tokens and were successfully retrieved`);
           try {
+            // Is the token going to expire in 10min or less?
             if (
               token.expires_at &&
               token.expires_at * 1000 - Date.now() <= 600000
             ) {
-              if (this.debug) log(`trying to refresh tokens`);
-              const {
-                toBrowser,
-                toStore,
-              } = await getRefreshedTokenSetAndClaims(token, this.client);
-              if (this.debug) log(`tokens successfully refreshed`);
-              if (this.debug) log(`updating tokens to db`);
-              await updateToStore(SID, toStore, this.redis);
-              if (this.debug) log(`tokens successfully saved`);
-              req.user = toBrowser;
-              if (path === this.refreshPath) {
-                if (this.debug) log(`is a refresh request`);
-                res.end(JSON.stringify(toBrowser));
-                if (this.debug) log(`tokens sent to frontend`);
-                if (this.debug) log(`end of request`);
-              } else if (path === this.callbackPath) {
-                res.redirect(this.authSuccessfulRedirectPath);
-                if (this.debug) log(`end of request`);
+              const result = await getRefreshedTokenSetAndClaims(
+                token,
+                this.client
+              );
+              if (result) {
+                const { toBrowser, toStore } = result;
+                await updateToStore(SID, toStore, this.redis);
+
+                if (path === this.refreshPath) {
+                  res.end(JSON.stringify(toBrowser));
+                } else if (path === this.callbackPath) {
+                  res.redirect(this.authSuccessfulRedirectPath);
+                } else {
+                  req.user = toBrowser;
+                }
               }
             } else {
-              const toBrowser = {
-                // We don't want the refresh token to be sent to the browser
-                raw: {
-                  access_token: token.access_token,
-                  id_token: token.id_token,
-                  expires_at: token.expires_at,
-                  scope: token.scope,
-                  token_type: token.token_type,
-                },
-                claimed: token.claims(),
-              };
-              req.user = toBrowser;
-              if (path === this.refreshPath) {
-                if (this.debug) log(`is a refresh request`);
-                res.end(JSON.stringify(toBrowser));
-                if (this.debug) log(`tokens sent to frontend`);
-                if (this.debug) log(`end of request`);
-              } else if (path === this.callbackPath) {
-                res.redirect(this.authSuccessfulRedirectPath);
-                if (this.debug) log(`end of request`);
+              try {
+                const claimed = token.claims();
+                const toBrowser = {
+                  // We don't want the refresh token to be sent to the browser
+                  raw: {
+                    access_token: token.access_token,
+                    id_token: token.id_token,
+                    expires_at: token.expires_at,
+                    scope: token.scope,
+                    token_type: token.token_type,
+                  },
+                  claimed,
+                };
+
+                if (path === this.refreshPath) {
+                  res.end(JSON.stringify(toBrowser));
+                } else if (path === this.callbackPath) {
+                  res.redirect(this.authSuccessfulRedirectPath);
+                } else {
+                  req.user = toBrowser;
+                }
+              } catch (error) {
+                log(
+                  "Error: We were not able to get the data from the token (claims)"
+                );
               }
             }
             userHasValidSession = true;
           } catch (error) {
-            if (this.debug) console.log(error);
+            log("Unknow error:");
+            console.log(error);
           }
         }
-
         if (!userHasValidSession) {
-          if (this.debug) log(`doesn't have a valid session`);
           if (path === this.authPath && req.method == "POST") {
-            if (this.debug) log(`request is the auth path`);
-            // We create a state that is saved to the DB and to a cookie, it will be used later
-            // to validate that no one stoled the access code.
+            // Get get a StateID from the frontend, generate a state and store
+            // it in the db, it will be used later to validate that no one stoled the access code.
             const state = generators.state();
             const stateID = req.body.stateID;
-            if (this.debug) log(`generating and saving state to db`);
-            await this.redis.set(stateID, state, "EX", this.authRequestMaxAge);
-            if (this.debug) log(`creating state cookie`);
-
-            if (this.debug) log(`authUrl is being built`);
-            // we then redirect the user to the idp
-            const redirectURL = this.client.authorizationUrl({
-              scope: this.scope,
-              code_challenge_method: "S256",
-              state,
-            });
-            if (this.debug) log(`redirect user to idp`);
-            if (this.debug) log(`end of request`);
-            res.end(JSON.stringify({ url: redirectURL }));
+            try {
+              await this.redis.set(
+                stateID,
+                state,
+                "EX",
+                this.authRequestMaxAge
+              );
+            } catch (error) {
+              log(
+                "Error: We were not able to store the state in the DB, check the following logs from redis:"
+              );
+              console.log(error);
+              res.end(JSON.stringify({ err: "DB_ERR" }));
+            }
+            // We then send the redirect URL back to the frontend, the frontend will
+            // take care of redirecting the user to the idp.
+            try {
+              const redirectURL = this.client.authorizationUrl({
+                scope: this.scope,
+                code_challenge_method: "S256",
+                state,
+              });
+              res.end(JSON.stringify({ url: redirectURL }));
+            } catch (error) {
+              log(
+                "Error: We were not able to generate the authorization url, check the following logs:"
+              );
+              console.log(error);
+              res.end(JSON.stringify({ err: "AUTH_URL_ERR" }));
+            }
           } else if (path === this.callbackPath && req.method == "POST") {
-            if (this.debug) log(`request is the callback path`);
-            if (this.debug) log(`getting params from callback query`);
-            const params = this.client.callbackParams(req.originalUrl);
-            if (this.debug) log(`parsing cookie state`);
-            const stateID = req.body.stateID;
-            if (stateID === undefined || stateID === "") {
-              if (this.debug)
-                log(`no state found in cookie/no cookie named state`);
-              res.redirect(this.authFailedRedirectPath);
-            } else {
-              if (this.debug) log(`getting state from db`);
-              const state = await this.redis.get(stateID);
-              try {
-                if (this.debug) log(`getting tokenset from auth`);
-                const tokenSet = await this.client.callback(
-                  this.redirectURI,
-                  params,
-                  {
-                    state,
+            try {
+              const params = this.client.callbackParams(req.originalUrl);
+              const stateID = req.body.stateID;
+              if (stateID === null || stateID === undefined || stateID === "") {
+                log("Error: No state found");
+                res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_REQ" }));
+              } else {
+                try {
+                  const state = await this.redis.get(stateID);
+                  if (state) {
+                    try {
+                      const tokenSet = await this.client.callback(
+                        this.redirectURI,
+                        params,
+                        {
+                          state,
+                        }
+                      );
+                      try {
+                        const claimed = tokenSet.claims();
+                        const resultToStore = { raw: tokenSet, claimed };
+                        const SID = uuidv4();
+                        // We create the user's session
+                        try {
+                          await this.redis.set(
+                            String(SID),
+                            JSON.stringify(resultToStore),
+                            "EX",
+                            this.sessionMaxAge
+                          );
+                          res.setHeader(
+                            "Set-Cookie",
+                            serializeCookie("SID", String(SID), {
+                              httpOnly: !dev,
+                              secure: !dev,
+                              sameSite: true,
+                              maxAge: this.sessionMaxAge,
+                              path: "/",
+                            })
+                          );
+                          try {
+                            await this.redis.del(stateID);
+                          } catch (error) {
+                            log(
+                              "Error: We were not able to delete the state from the DB, see the following logs:"
+                            );
+                            console.log(error);
+                            res.end(JSON.stringify({ err: "DB_ERR" }));
+                          }
+                          res.end(
+                            JSON.stringify({
+                              url: this.authSuccessfulRedirectPath,
+                            })
+                          );
+                        } catch (error) {
+                          log(
+                            "Error: We were not able to save the session to the db, check the following logs:"
+                          );
+                          console.log(error);
+                          res.end(JSON.stringify({ err: "DB_ERR" }));
+                        }
+                      } catch (error) {
+                        log(
+                          "Error: We were not able to claims the tokens, see the following logs:"
+                        );
+                        console.log(error);
+                        res.end(JSON.stringify({ err: "CLAIMS_ERR" }));
+                      }
+                    } catch (error) {
+                      log(
+                        "Error: We were not able to perform the callback for Authorization Server's authorization response, see the logs bellow:"
+                      );
+                      console.log(error);
+                      res.end(JSON.stringify({ err: "CALLBACK_ERR" }));
+                    }
+                  } else {
+                    log("Error: No state found in db");
+                    res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_DB" }));
                   }
-                );
-                if (this.debug) log(`getting token claims`);
-                const claimed = tokenSet.claims();
-                const resultToStore = { raw: tokenSet, claimed };
-                // The user's data are sent to the browser via the sapper middleware
-                if (this.debug) log(`creating SID in redis`);
-                // A session is created and the refresh token is stored.
-                const SID = uuidv4();
-                try {
-                  await this.redis.set(
-                    String(SID),
-                    JSON.stringify(resultToStore),
-                    "EX",
-                    this.sessionMaxAge
+                } catch (error) {
+                  log(
+                    "Error: An error occured when fetching the state from the DB, see the error bellow:"
                   );
-                } catch (error) {
                   console.log(error);
-                  res.redirect(this.authFailedRedirectPath);
+                  res.end(JSON.stringify({ err: "DB_ERR" }));
                 }
-                if (this.debug) log(`creating SID cookie`);
-                res.setHeader(
-                  "Set-Cookie",
-                  serializeCookie("SID", String(SID), {
-                    httpOnly: !dev,
-                    secure: !dev,
-                    sameSite: true,
-                    maxAge: this.sessionMaxAge,
-                    domain: this.domain,
-                    path: "/",
-                  })
-                );
-                try {
-                  await this.redis.del(stateID);
-                } catch (error) {
-                  res.end("Error deleting state from DB");
-                }
-                if (this.debug) log(`end`);
-                res.end(
-                  JSON.stringify({ url: this.authSuccessfulRedirectPath })
-                );
-              } catch (error) {
-                res.redirect(this.authFailedRedirectPath);
               }
+            } catch (error) {
+              log(
+                "Error: We were not able to get the params from the callback, see the following logs:"
+              );
+              console.log(error);
+              res.end(JSON.stringify({ err: "NO_PARAMS_FOUND" }));
             }
           } else if (isProtectedPath(path, this.protectedPaths)) {
             if (this.debug) log(`request is a protected path`);
@@ -268,7 +305,6 @@ export class SapperOIDCClient {
           }
         }
       }
-
       next();
     };
   }
@@ -286,11 +322,19 @@ async function getTokenSetFromCookie(
   if (SID) {
     try {
       const result = await redisClient.get(SID);
-      const tokenSet = new TokenSet(JSON.parse(result).raw);
-      return tokenSet;
+      if (result) {
+        try {
+          const tokenSet = new TokenSet(JSON.parse(result).raw);
+          return tokenSet;
+        } catch (error) {
+          // It would mean that the data stored in the DB are not correctly formated. We don't want that.
+          await redisClient.del(SID);
+          return undefined;
+        }
+      } else {
+        return undefined;
+      }
     } catch (error) {
-      console.log(error);
-      await redisClient.del(SID);
       return undefined;
     }
   } else {
@@ -301,26 +345,36 @@ async function getTokenSetFromCookie(
 async function getRefreshedTokenSetAndClaims(
   tokenSet: TokenSet,
   client: Client
-): Promise<{ toStore: any | undefined; toBrowser: any }> {
+): Promise<{ toStore: any; toBrowser: any } | undefined> {
   //TODO: Strict type on return;
-  const refreshedTokenSet = await client.refresh(tokenSet);
-  const claimed = refreshedTokenSet.claims();
-  const resultToStore = { raw: refreshedTokenSet, claimed };
-  const resultToBrowser = {
-    // We don't want the refresh token to be sent to the browser
-    raw: {
-      access_token: refreshedTokenSet.access_token,
-      id_token: refreshedTokenSet.id_token,
-      expires_at: refreshedTokenSet.expires_at,
-      scope: refreshedTokenSet.scope,
-      token_type: refreshedTokenSet.token_type,
-    },
-    claimed: claimed,
-  };
-  return {
-    toStore: resultToStore,
-    toBrowser: resultToBrowser,
-  };
+  try {
+    const refreshedTokenSet = await client.refresh(tokenSet);
+    try {
+      const claimed = refreshedTokenSet.claims();
+      const resultToStore = { raw: refreshedTokenSet, claimed };
+      const resultToBrowser = {
+        // We don't want the refresh token to be sent to the browser
+        raw: {
+          access_token: refreshedTokenSet.access_token,
+          id_token: refreshedTokenSet.id_token,
+          expires_at: refreshedTokenSet.expires_at,
+          scope: refreshedTokenSet.scope,
+          token_type: refreshedTokenSet.token_type,
+        },
+        claimed: claimed,
+      };
+      return {
+        toStore: resultToStore,
+        toBrowser: resultToBrowser,
+      };
+    } catch (error) {
+      log("Error: We were not able to get the data from the token (claims)");
+      return undefined;
+    }
+  } catch (error) {
+    log("Error: We were not able to refresh the tokens");
+    return undefined;
+  }
 }
 
 async function updateToStore(SID: string, toStore: any, redisClient: any) {

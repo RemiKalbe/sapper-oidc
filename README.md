@@ -129,7 +129,11 @@ Open your root `_layout.svelte` (or create one)
       /* If a user navigate client side to a route that you
             configured to be available only to logged in user,
             pathGuard will ensure that. */
-      pathGuard(authPath, path, protectedPaths, user);
+      try {
+        pathGuard(authPath, path, protectedPaths, user);
+      }catch (error){
+      // See the error section for more details
+      }
     });
   });
 </script>
@@ -149,11 +153,32 @@ cb.svelte
     try {
       callback();
     }catch (error){
-      // Do something here
+      // See the error section for more details
     }
   });
 </script>
 
 ```
 
-And done 😇
+And done 😇<br>
+
+### Errors
+
+#### From `pathGuard`
+
+| Name         | Info                                               |
+| ------------ | -------------------------------------------------- |
+| DB_ERR       | An unexpected error from redis                     |
+| AUTH_URL_ERR | It were not able to generate the authorization url |
+
+#### From `callback
+
+| Name                  | Info                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| NO_STATE_FOUND_IN_REQ | There wasn't any state sent with the request                                               |
+| NO_STATE_FOUND_IN_STR | No state found in storage (meaning localStorage is empty)                                  |
+| DB_ERR                | An unexpected error from redis                                                             |
+| CLAIMS_ERR            | It were not able to claims the tokens (ie: get the user's info)                            |
+| CALLBACK_ERR          | It were not able to perform the callback for Authorization Server's authorization response |
+| NO_STATE_FOUND_IN_DB  | There wasn't any state corresponding to the stateID sent with the request in the DB        |
+| NO_PARAMS_FOUND       | The request didn't had any params                                                          |

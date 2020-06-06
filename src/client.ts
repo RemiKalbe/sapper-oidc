@@ -71,7 +71,11 @@ export function auth(authPath: string) {
     })
     .then((res) => {
       res.json().then((json) => {
-        window.location.href = json.url;
+        if (json.err === undefined || json.err === null) {
+          window.location.href = json.url;
+        } else {
+          throw new Error(json.err);
+        }
       });
     });
 }
@@ -80,7 +84,6 @@ export function callback() {
   const stateID = localStorage.getItem("stateID");
   localStorage.removeItem("stateID");
   if (stateID) {
-    console.log("fetching " + window.location.href);
     window
       .fetch(window.location.href, {
         method: "POST",
@@ -92,10 +95,14 @@ export function callback() {
       })
       .then((res) => {
         res.json().then((json) => {
-          window.location.href = json.url;
+          if (json.err === undefined || json.err === null) {
+            window.location.href = json.url;
+          } else {
+            throw new Error(json.err);
+          }
         });
       });
   } else {
-    throw new Error("No state found in storage");
+    throw new Error("NO_STATE_FOUND_IN_STR");
   }
 }
