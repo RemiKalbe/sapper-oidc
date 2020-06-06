@@ -9,7 +9,6 @@ interface Options {
     authPath: string;
     protectedPaths: [ProtectedPath];
     authSuccessfulRedirectPath: string;
-    authFailedRedirectPath: string;
     callbackPath: string;
     scope: string;
     refreshPath: string;
@@ -30,7 +29,6 @@ export declare class SapperOIDCClient {
     private protectedPaths;
     private callbackPath;
     private authSuccessfulRedirectPath;
-    private authFailedRedirectPath;
     private refreshPath;
     private scope;
     private ok;

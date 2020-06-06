@@ -66,7 +66,6 @@ import bodyParser from "body-parser";
     refreshPath,
     protectedPaths,
     authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
-    authFailedRedirectPath: "http://127.0.0.1:3000/error", // Where do you want the user to be redirected to upon failed auth
     callbackPath: "/cb", // The route of the callback
     scope: "openid profile offline_access", // You must have at least openid and offline_access
     redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
@@ -171,7 +170,7 @@ And done 😇<br>
 | DB_ERR       | An unexpected error from redis                     |
 | AUTH_URL_ERR | It were not able to generate the authorization url |
 
-#### From `callback
+#### From `callback`
 
 | Name                  | Info                                                                                       |
 | --------------------- | ------------------------------------------------------------------------------------------ |

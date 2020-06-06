@@ -23,7 +23,6 @@ interface Options {
   authPath: string;
   protectedPaths: [ProtectedPath];
   authSuccessfulRedirectPath: string;
-  authFailedRedirectPath: string;
   callbackPath: string;
   scope: string;
   refreshPath: string;
@@ -45,7 +44,6 @@ export class SapperOIDCClient {
   private protectedPaths: [ProtectedPath];
   private callbackPath: string;
   private authSuccessfulRedirectPath: string;
-  private authFailedRedirectPath: string;
   private refreshPath: string;
   private scope: string;
   private ok!: boolean;
@@ -66,7 +64,6 @@ export class SapperOIDCClient {
     this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
-    this.authFailedRedirectPath = options.authFailedRedirectPath;
     this.refreshPath = options.refreshPath;
     this.scope = options.scope;
     this.debug = options.debug ? options.debug : false;
@@ -90,7 +87,7 @@ export class SapperOIDCClient {
       // We get the current path without any query string
       const path = req.originalUrl.replace(/\?.*$/, "");
       // We don't want our tokens to be refreshed when the browser fetch static files.
-      if (!path.includes(".") && path !== path.authFailedRedirectPath) {
+      if (!path.includes(".")) {
         // Polka doesn't have res.redirect
         res.redirect = (location: string) => {
           let str = `Redirecting to ${location}`;
