@@ -17,14 +17,24 @@ export async function silentRenew(
   if (window !== undefined) {
     if (user !== null && user !== undefined) {
       const expIn = user.raw.expires_at * 1000 - Date.now() - 100;
-      window.setInterval(async () => {
-        const response = await window.fetch(refreshPath);
-        const json = await response.json();
-        return callback(json);
-      }, expIn);
+      refresh(expIn, callback, refreshPath);
     }
   }
 }
+function refresh(expIn: number, callback: any, refreshPath: string) {
+  let interval = window.setInterval(async () => {
+    const response = await window.fetch(refreshPath);
+    const json = await response.json();
+    window.clearInterval(interval);
+    refresh(
+      json.raw.expires_at * 1000 - Date.now() - 100,
+      callback,
+      refreshPath
+    );
+    return callback(json);
+  }, expIn);
+}
+
 export function pathGuard(
   authPath: string,
   path: string,
