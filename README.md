@@ -18,7 +18,7 @@ This library is a way to solve this issue by using sapper as a sort of proxy. <b
 ## Installation
 
 🚧🚧🚧 IMPORTANT 🚧🚧🚧<br>
-This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
+This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until it reach v1.0.<br> <br>
 
 ```bash
 npm i sapper-oidc
