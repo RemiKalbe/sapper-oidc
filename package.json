@@ -1,14 +1,18 @@
 {
   "name": "sapper-oidc",
-  "version": "0.3.0",
-  "description": "",
+  "version": "0.3.2",
+  "description": "OIDC on the backend, session management & automatic token refresh on the frontend 🚀",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RemiKalbe/sapper-oidc"
+  },
   "main": "./lib/index.js",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Rémi Kalbe",
+  "license": "Apache License 2.0",
   "dependencies": {
     "@types/async-redis": "^1.1.1",
     "@types/cookie": "^0.4.0",
