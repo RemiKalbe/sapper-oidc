@@ -138,6 +138,9 @@ export class SapperOIDCClient {
             } else if (path === this.authPath) {
               res.redirect(this.authSuccessfulRedirectPath);
               if (this.debug) log(`end of request`);
+            } else if (path === this.callbackPath) {
+              res.redirect(this.authSuccessfulRedirectPath);
+              if (this.debug) log(`end of request`);
             }
             userHasValidSession = true;
           } catch (error) {
@@ -159,7 +162,7 @@ export class SapperOIDCClient {
             res.setHeader(
               "Set-Cookie",
               serializeCookie("state", String(stateID), {
-                httpOnly: true,
+                httpOnly: !dev,
                 secure: !dev,
                 sameSite: true,
                 maxAge: this.authRequestMaxAge,
@@ -187,68 +190,69 @@ export class SapperOIDCClient {
               if (this.debug)
                 log(`no state found in cookie/no cookie named state`);
               res.redirect(this.authFailedRedirectPath);
-            }
-            if (this.debug) log(`getting state from db`);
-            const state = await this.redis.get(stateID);
-            try {
-              if (this.debug) log(`getting tokenset from auth`);
-              const tokenSet = await this.client.callback(
-                this.redirectURI,
-                params,
-                {
-                  state,
-                }
-              );
-              if (this.debug) log(`getting token claims`);
-              const claimed = tokenSet.claims();
-              const resultToStore = { raw: tokenSet, claimed };
-              const resultToBrowser = {
-                // We don't want the refresh token to be sent to the browser
-                raw: {
-                  access_token: tokenSet.access_token,
-                  id_token: tokenSet.id_token,
-                  expires_at: tokenSet.expires_at,
-                  scope: tokenSet.scope,
-                  token_type: tokenSet.token_type,
-                },
-                claimed,
-              };
-              // The user's data are sent to the browser via the sapper middleware
-              req.user = resultToBrowser;
-              if (this.debug) log(`creating SID in redis`);
-              // A session is created and the refresh token is stored.
-              const SID = uuidv4();
+            } else {
+              if (this.debug) log(`getting state from db`);
+              const state = await this.redis.get(stateID);
               try {
-                await this.redis.set(
-                  SID,
-                  JSON.stringify(resultToStore),
-                  "EX",
-                  this.sessionMaxAge
+                if (this.debug) log(`getting tokenset from auth`);
+                const tokenSet = await this.client.callback(
+                  this.redirectURI,
+                  params,
+                  {
+                    state,
+                  }
                 );
+                if (this.debug) log(`getting token claims`);
+                const claimed = tokenSet.claims();
+                const resultToStore = { raw: tokenSet, claimed };
+                const resultToBrowser = {
+                  // We don't want the refresh token to be sent to the browser
+                  raw: {
+                    access_token: tokenSet.access_token,
+                    id_token: tokenSet.id_token,
+                    expires_at: tokenSet.expires_at,
+                    scope: tokenSet.scope,
+                    token_type: tokenSet.token_type,
+                  },
+                  claimed,
+                };
+                // The user's data are sent to the browser via the sapper middleware
+                req.user = resultToBrowser;
+                if (this.debug) log(`creating SID in redis`);
+                // A session is created and the refresh token is stored.
+                const SID = uuidv4();
+                try {
+                  await this.redis.set(
+                    SID,
+                    JSON.stringify(resultToStore),
+                    "EX",
+                    this.sessionMaxAge
+                  );
+                } catch (error) {
+                  res.redirect(this.authFailedRedirectPath);
+                }
+                if (this.debug) log(`creating SID cookie`);
+                res.setHeader(
+                  "Set-Cookie",
+                  serializeCookie("SID", String(SID), {
+                    httpOnly: !dev,
+                    secure: !dev,
+                    sameSite: true,
+                    maxAge: this.sessionMaxAge,
+                    domain: this.domain,
+                    path: "/",
+                  })
+                );
+                try {
+                  await this.redis.del(stateID);
+                } catch (error) {
+                  res.end("Error deleting state from DB");
+                }
+                if (this.debug) log(`end`);
+                res.redirect(this.authSuccessfulRedirectPath);
               } catch (error) {
                 res.redirect(this.authFailedRedirectPath);
               }
-              if (this.debug) log(`creating SID cookie`);
-              res.setHeader(
-                "Set-Cookie",
-                serializeCookie("SID", String(SID), {
-                  httpOnly: true,
-                  secure: !dev,
-                  sameSite: true,
-                  maxAge: this.sessionMaxAge,
-                  domain: this.domain,
-                  path: "/",
-                })
-              );
-              try {
-                await this.redis.del(stateID);
-              } catch (error) {
-                res.end("Error deleting state from DB");
-              }
-              if (this.debug) log(`end`);
-              res.redirect(this.authSuccessfulRedirectPath);
-            } catch (error) {
-              res.redirect(this.authFailedRedirectPath);
             }
           } else if (isProtectedPath(path, this.protectedPaths)) {
             if (this.debug) log(`request is a protected path`);

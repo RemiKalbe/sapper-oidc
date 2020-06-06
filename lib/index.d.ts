@@ -1,2 +1,2 @@
 export { SapperOIDCClient } from "./server";
-export { silentRenew } from "./client";
+export { silentRenew, pathGuard } from "./client";
