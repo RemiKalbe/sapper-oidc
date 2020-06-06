@@ -21,7 +21,7 @@ This library is a way to solve this issue by using sapper as a sort of proxy. <b
 This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until we reach v1.0.<br> <br>
 
 ```bash
-npm i sapper-oidc // Will not work until v1.0
+npm i sapper-oidc
 ```
 
 ### Create a confirguration file
