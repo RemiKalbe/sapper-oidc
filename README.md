@@ -139,7 +139,7 @@ Open your root `_layout.svelte` (or create one)
 ```
 
 I'd recommend that you create a Svelte store to store the data you get back from "user", and then you update it with the new data that you get from the callback function in "silentRenew". <br>
-Finaly create a svelte file with the SAME path as your `callbackPath` set in the options. <br>
+Now create a svelte file with the SAME path as your `callbackPath` set in the options. <br>
 For example, if your path is "/cb" create a svelte file at the root of the routes folder named `cb.svelte`.<br>
 cb.svelte
 
@@ -156,7 +156,26 @@ cb.svelte
     }
   });
 </script>
+```
 
+Finaly create a svelte file with the SAME path as your `authPath` set in the options. <br>
+For example, if your path is "/auth" create a svelte file at the root of the routes folder named `auth.svelte`.<br>
+auth.svelte
+
+```svelte
+<script>
+  import { onMount } from "svelte";
+  import { auth } from "sapper-oidc/lib/client";
+  import { authPath } from "../OIDCConfig";
+
+  onMount(() => {
+    try {
+      auth(authPath);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+</script>
 ```
 
 And done 😇<br>
@@ -165,10 +184,11 @@ And done 😇<br>
 
 #### From `pathGuard`
 
-| Name         | Info                                               |
-| ------------ | -------------------------------------------------- |
-| DB_ERR       | An unexpected error from redis                     |
-| AUTH_URL_ERR | It were not able to generate the authorization url |
+| Name                    | Info                                               |
+| ----------------------- | -------------------------------------------------- |
+| DB_ERR                  | An unexpected error from redis                     |
+| AUTH_URL_ERR            | It were not able to generate the authorization url |
+| NO_STATEID_FOUND_IN_REQ | There wasn't any stateID sent with the request     |
 
 #### From `callback`
 

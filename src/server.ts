@@ -171,35 +171,40 @@ export class SapperOIDCClient {
             // it in the db, it will be used later to validate that no one stoled the access code.
             const state = generators.state();
             const stateID = req.body.stateID;
-            try {
-              await this.redis.set(
-                stateID,
-                state,
-                "EX",
-                this.authRequestMaxAge
-              );
-            } catch (error) {
-              log(
-                "Error: We were not able to store the state in the DB, check the following logs from redis:"
-              );
-              console.log(error);
-              res.end(JSON.stringify({ err: "DB_ERR" }));
-            }
-            // We then send the redirect URL back to the frontend, the frontend will
-            // take care of redirecting the user to the idp.
-            try {
-              const redirectURL = this.client.authorizationUrl({
-                scope: this.scope,
-                code_challenge_method: "S256",
-                state,
-              });
-              res.end(JSON.stringify({ url: redirectURL }));
-            } catch (error) {
-              log(
-                "Error: We were not able to generate the authorization url, check the following logs:"
-              );
-              console.log(error);
-              res.end(JSON.stringify({ err: "AUTH_URL_ERR" }));
+            if (stateID) {
+              try {
+                await this.redis.set(
+                  stateID,
+                  state,
+                  "EX",
+                  this.authRequestMaxAge
+                );
+              } catch (error) {
+                log(
+                  "Error: We were not able to store the state in the DB, check the following logs from redis:"
+                );
+                console.log(error);
+                res.end(JSON.stringify({ err: "DB_ERR" }));
+              }
+              // We then send the redirect URL back to the frontend, the frontend will
+              // take care of redirecting the user to the idp.
+              try {
+                const redirectURL = this.client.authorizationUrl({
+                  scope: this.scope,
+                  code_challenge_method: "S256",
+                  state,
+                });
+                res.end(JSON.stringify({ url: redirectURL }));
+              } catch (error) {
+                log(
+                  "Error: We were not able to generate the authorization url, check the following logs:"
+                );
+                console.log(error);
+                res.end(JSON.stringify({ err: "AUTH_URL_ERR" }));
+              }
+            } else {
+              log("Error: No stateID found in request");
+              res.end(JSON.stringify({ err: "NO_STATEID_FOUND_IN_REQ" }));
             }
           } else if (path === this.callbackPath && req.method == "POST") {
             try {
@@ -297,7 +302,6 @@ export class SapperOIDCClient {
               res.end(JSON.stringify({ err: "NO_PARAMS_FOUND" }));
             }
           } else if (isProtectedPath(path, this.protectedPaths)) {
-            if (this.debug) log(`request is a protected path`);
             res.redirect(this.authPath);
           }
         }
