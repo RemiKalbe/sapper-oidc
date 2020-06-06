@@ -1,4 +1,5 @@
 import { ProtectedPath, isProtectedPath } from "./both";
+import { v4 as uuidv4 } from "uuid";
 
 export async function silentRenew(
   refreshPath: string,
@@ -42,6 +43,49 @@ export function pathGuard(
     isProtectedPath(path, protectedPath) &&
     (user === null || user === undefined)
   ) {
-    window.location.pathname = authPath;
+    auth(authPath);
+  }
+}
+
+export function auth(authPath: string) {
+  const stateID = uuidv4();
+  localStorage.setItem("stateID", stateID);
+  window
+    .fetch(authPath, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ stateID }),
+    })
+    .then((res) => {
+      res.json().then((json) => {
+        window.location.href = json.url;
+      });
+    });
+}
+
+export function callback() {
+  const stateID = localStorage.getItem("stateID");
+  localStorage.removeItem("stateID");
+  if (stateID) {
+    console.log("fetching " + window.location.href);
+    window
+      .fetch(window.location.href, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ stateID }),
+      })
+      .then((res) => {
+        res.json().then((json) => {
+          window.location.href = json.url;
+        });
+      });
+  } else {
+    throw new Error("No state found in storage");
   }
 }

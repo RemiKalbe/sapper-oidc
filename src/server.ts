@@ -135,9 +135,6 @@ export class SapperOIDCClient {
               res.end(JSON.stringify(toBrowser));
               if (this.debug) log(`tokens sent to frontend`);
               if (this.debug) log(`end of request`);
-            } else if (path === this.authPath) {
-              res.redirect(this.authSuccessfulRedirectPath);
-              if (this.debug) log(`end of request`);
             } else if (path === this.callbackPath) {
               res.redirect(this.authSuccessfulRedirectPath);
               if (this.debug) log(`end of request`);
@@ -150,26 +147,16 @@ export class SapperOIDCClient {
 
         if (!userHasValidSession) {
           if (this.debug) log(`doesn't have a valid session`);
-          if (path === this.authPath) {
+          if (path === this.authPath && req.method == "POST") {
             if (this.debug) log(`request is the auth path`);
             // We create a state that is saved to the DB and to a cookie, it will be used later
             // to validate that no one stoled the access code.
             const state = generators.state();
-            const stateID = uuidv4();
+            const stateID = req.body.stateID;
             if (this.debug) log(`generating and saving state to db`);
             await this.redis.set(stateID, state, "EX", this.authRequestMaxAge);
             if (this.debug) log(`creating state cookie`);
-            res.setHeader(
-              "Set-Cookie",
-              serializeCookie("state", String(stateID), {
-                httpOnly: !dev,
-                secure: !dev,
-                sameSite: true,
-                maxAge: this.authRequestMaxAge,
-                domain: this.domain,
-                path: "/",
-              })
-            );
+
             if (this.debug) log(`authUrl is being built`);
             // we then redirect the user to the idp
             const redirectURL = this.client.authorizationUrl({
@@ -179,13 +166,13 @@ export class SapperOIDCClient {
             });
             if (this.debug) log(`redirect user to idp`);
             if (this.debug) log(`end of request`);
-            res.redirect(redirectURL);
-          } else if (path === this.callbackPath) {
+            res.end(JSON.stringify({ url: redirectURL }));
+          } else if (path === this.callbackPath && req.method == "POST") {
             if (this.debug) log(`request is the callback path`);
             if (this.debug) log(`getting params from callback query`);
-            const params = this.client.callbackParams(req);
+            const params = this.client.callbackParams(req.originalUrl);
             if (this.debug) log(`parsing cookie state`);
-            const stateID = parseCookie(req.headers.cookie).state;
+            const stateID = req.body.stateID;
             if (stateID === undefined || stateID === "") {
               if (this.debug)
                 log(`no state found in cookie/no cookie named state`);
@@ -205,19 +192,7 @@ export class SapperOIDCClient {
                 if (this.debug) log(`getting token claims`);
                 const claimed = tokenSet.claims();
                 const resultToStore = { raw: tokenSet, claimed };
-                const resultToBrowser = {
-                  // We don't want the refresh token to be sent to the browser
-                  raw: {
-                    access_token: tokenSet.access_token,
-                    id_token: tokenSet.id_token,
-                    expires_at: tokenSet.expires_at,
-                    scope: tokenSet.scope,
-                    token_type: tokenSet.token_type,
-                  },
-                  claimed,
-                };
                 // The user's data are sent to the browser via the sapper middleware
-                req.user = resultToBrowser;
                 if (this.debug) log(`creating SID in redis`);
                 // A session is created and the refresh token is stored.
                 const SID = uuidv4();
@@ -249,7 +224,9 @@ export class SapperOIDCClient {
                   res.end("Error deleting state from DB");
                 }
                 if (this.debug) log(`end`);
-                res.redirect(this.authSuccessfulRedirectPath);
+                res.end(
+                  JSON.stringify({ url: this.authSuccessfulRedirectPath })
+                );
               } catch (error) {
                 res.redirect(this.authFailedRedirectPath);
               }

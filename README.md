@@ -21,7 +21,7 @@ This library is a way to solve this issue by using sapper as a sort of proxy. <b
 This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until it reach v1.0.<br> <br>
 
 ```bash
-npm i sapper-oidc
+npm i sapper-oidc body-parser
 ```
 
 ### Create a confirguration file
@@ -32,7 +32,7 @@ in your `/src` create a file, for example named `OIDCConfig.js` and add the foll
 export const authPath = "/auth"; // This route initiate the OIDC flow.
 export const refreshPath = "/refresh"; // This is the route that will be called when tokens need to be refreshed
 export const protectedPaths = [
-  // This array stores all the routes where the user MUST be logged in, if not he will be redirected to the identity provider.
+  // This array stores all routes where the user MUST be logged in, if he is not he will be redirected to the identity provider.
   {
     path: "/private-info",
     recursive: true /* This means that all route starting with /private-info requires the user to be logged in*/,
@@ -52,6 +52,7 @@ server.js
 ```js
 import { authPath, refreshPath, protectedPaths } from "./OIDCConfig"; // The file we just created
 import { SapperOIDCClient } from "sapper-oidc/lib/server";
+import bodyParser from "body-parser";
 
 (async function () {
   const options = {
@@ -75,13 +76,14 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
   await client.init(); // Don't forget it 🚦
 
   polka()
+    .use(bodyParser.json()) // Don't forget that 🚦
     .use(await client.middleware()) // Don't forget that 🚦
     .use(
       compression({ threshold: 0 }),
       sirv("static", { dev }),
       sapper.middleware({
-        // And finally 🚦
         session: (req, res) => ({
+          // And finally 🚦
           user: req.user,
         }),
       })
@@ -123,7 +125,7 @@ Open your root `_layout.svelte` (or create one)
         "e" is the data returned when a token is refreshed, it is
         the same structure as "user" returned before */
     await silentRenew(refreshPath, e => (user = e), user);
-    page.subscribe(async ({ path }) => {
+    page.subscribe(({ path }) => {
       /* If a user navigate client side to a route that you
             configured to be available only to logged in user,
             pathGuard will ensure that. */
@@ -133,4 +135,25 @@ Open your root `_layout.svelte` (or create one)
 </script>
 ```
 
-I'd recommend that you create a Svelte store to store the data you get back from "user", and then you update it with the new data that you get from the callback function in "silentRenew".
+I'd recommend that you create a Svelte store to store the data you get back from "user", and then you update it with the new data that you get from the callback function in "silentRenew". <br>
+Finaly create a svelte file with the SAME path as your `callbackPath` set in the options. <br>
+For example, if your path is "/cb" create a svelte file at the root of the routes folder named `cb.svelte`.<br>
+cb.svelte
+
+```svelte
+<script>
+  import { onMount } from "svelte";
+  import { callback } from "sapper-oidc/lib/client";
+
+  onMount( () => {
+    try {
+      callback();
+    }catch (error){
+      // Do something here
+    }
+  });
+</script>
+
+```
+
+And done 😇
