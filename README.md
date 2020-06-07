@@ -67,7 +67,7 @@ import bodyParser from "body-parser";
     protectedPaths,
     /* Where do you want the user to be redirected to upon successful auth
       Except if you set at the callback route to redirect the user back to
-      where he were before */
+      where he was before */
     authSuccessfulRedirectPath: "http://127.0.0.1:3000/",
     callbackPath: "/cb", // The route of the callback
     scope: "openid profile offline_access", // You must have at least openid and offline_access
@@ -153,7 +153,7 @@ cb.svelte
 
   onMount( () => {
     try {
-      callback(true); // If true, the user will be redirected back to where he were before.
+      callback(true); // If true, the user will be redirected back to where he was before.
     }catch (error){
       // See the error section for more details
     }
