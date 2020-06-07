@@ -53,6 +53,7 @@ export function pathGuard(
     isProtectedPath(path, protectedPath) &&
     (user === null || user === undefined)
   ) {
+    localStorage.setItem("where_at", window.location.href);
     auth(authPath);
   }
 }
@@ -80,7 +81,7 @@ export function auth(authPath: string) {
     });
 }
 
-export function callback() {
+export function callback(redirectBack: boolean) {
   const stateID = localStorage.getItem("stateID");
   localStorage.removeItem("stateID");
   if (stateID) {
@@ -95,8 +96,17 @@ export function callback() {
       })
       .then((res) => {
         res.json().then((json) => {
-          if (json.err === undefined || json.err === null) {
-            window.location.href = json.url;
+          const back = localStorage.getItem("where_at");
+          if (
+            (json.err === undefined || json.err === null) &&
+            back !== undefined &&
+            back !== null
+          ) {
+            if (redirectBack) {
+              window.location.href = back;
+            } else {
+              window.location.href = json.url;
+            }
           } else {
             throw new Error(json.err);
           }

@@ -65,7 +65,10 @@ import bodyParser from "body-parser";
     authPath,
     refreshPath,
     protectedPaths,
-    authSuccessfulRedirectPath: "http://127.0.0.1:3000/", // Where do you want the user to be redirected to upon successful auth
+    /* Where do you want the user to be redirected to upon successful auth
+      Except if you set at the callback route to redirect the user back to
+      where he were before */
+    authSuccessfulRedirectPath: "http://127.0.0.1:3000/",
     callbackPath: "/cb", // The route of the callback
     scope: "openid profile offline_access", // You must have at least openid and offline_access
     redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
@@ -150,7 +153,7 @@ cb.svelte
 
   onMount( () => {
     try {
-      callback();
+      callback(true); // If true, the user will be redirected back to where he were before.
     }catch (error){
       // See the error section for more details
     }
