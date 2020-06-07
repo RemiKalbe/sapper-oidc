@@ -23,6 +23,7 @@ interface Options {
   authPath: string;
   protectedPaths: [ProtectedPath];
   authSuccessfulRedirectPath: string;
+  authFailedRedirectPath: string;
   callbackPath: string;
   scope: string;
   refreshPath: string;
@@ -44,6 +45,7 @@ export class SapperOIDCClient {
   private protectedPaths: [ProtectedPath];
   private callbackPath: string;
   private authSuccessfulRedirectPath: string;
+  private authFailedRedirectPath: string;
   private refreshPath: string;
   private scope: string;
   private ok!: boolean;
@@ -64,6 +66,7 @@ export class SapperOIDCClient {
     this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
+    this.authFailedRedirectPath = options.authFailedRedirectPath;
     this.refreshPath = options.refreshPath;
     this.scope = options.scope;
     this.debug = options.debug ? options.debug : false;
@@ -90,13 +93,11 @@ export class SapperOIDCClient {
       if (!path.includes(".")) {
         // Polka doesn't have res.redirect
         res.redirect = (location: string) => {
-          let str = `Redirecting to ${location}`;
-          res.writeHead(302, {
-            Location: location,
-            "Content-Type": "text/plain",
-            "Content-Length": str.length,
-          });
-          res.end(str);
+          res.end(
+            `<meta http-equiv="refresh" content="0;URL=${
+              req.headers.origin ? req.headers.origin : "" + location
+            }">`
+          );
         };
 
         let userHasValidSession = false;
@@ -166,53 +167,60 @@ export class SapperOIDCClient {
           }
         }
         if (!userHasValidSession) {
-          if (path === this.authPath && req.method == "POST") {
-            // Get get a StateID from the frontend, generate a state and store
-            // it in the db, it will be used later to validate that no one stoled the access code.
+          if (path === this.authPath) {
+            // Generate a state and store it in the db & in a cookie, it will be used later to
+            // validate that the response hasn't been tempered with.
             const state = generators.state();
-            const stateID = req.body.stateID;
-            if (stateID) {
-              try {
-                await this.redis.set(
-                  stateID,
-                  state,
-                  "EX",
-                  this.authRequestMaxAge
-                );
-              } catch (error) {
-                log(
-                  "Error: We were not able to store the state in the DB, check the following logs from redis:"
-                );
-                console.log(error);
-                res.end(JSON.stringify({ err: "DB_ERR" }));
-              }
-              // We then send the redirect URL back to the frontend, the frontend will
-              // take care of redirecting the user to the idp.
+            const stateID = uuidv4();
+
+            res.setHeader(
+              "Set-Cookie",
+              serializeCookie("state", String(stateID), {
+                httpOnly: !dev,
+                secure: !dev,
+                sameSite: true,
+                maxAge: this.authRequestMaxAge,
+                path: "/",
+              })
+            );
+
+            try {
+              await this.redis.set(
+                stateID,
+                state,
+                "EX",
+                this.authRequestMaxAge
+              );
+              // We then redirect the user to the authorization page.
               try {
                 const redirectURL = this.client.authorizationUrl({
                   scope: this.scope,
                   code_challenge_method: "S256",
                   state,
                 });
-                res.end(JSON.stringify({ url: redirectURL }));
+                res.redirect(redirectURL);
               } catch (error) {
                 log(
                   "Error: We were not able to generate the authorization url, check the following logs:"
                 );
                 console.log(error);
-                res.end(JSON.stringify({ err: "AUTH_URL_ERR" }));
+                req.error = "AUTH_URL_ERR";
               }
-            } else {
-              log("Error: No stateID found in request");
-              res.end(JSON.stringify({ err: "NO_STATEID_FOUND_IN_REQ" }));
+            } catch (error) {
+              log(
+                "Error: We were not able to store the state in the DB, check the following logs from redis:"
+              );
+              console.log(error);
+              req.error = "DB_ERR";
             }
-          } else if (path === this.callbackPath && req.method == "POST") {
+          } else if (path === this.callbackPath) {
             try {
-              const params = this.client.callbackParams(req.originalUrl);
-              const stateID = req.body.stateID;
+              const params = this.client.callbackParams(req);
+              const stateID = getStateFromCookie(req);
               if (stateID === null || stateID === undefined || stateID === "") {
                 log("Error: No state found");
-                res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_REQ" }));
+                req.error = "NO_STATE_FOUND_IN_REQ";
+                res.redirect(this.authFailedRedirectPath);
               } else {
                 try {
                   const state = await this.redis.get(stateID);
@@ -254,44 +262,47 @@ export class SapperOIDCClient {
                               "Error: We were not able to delete the state from the DB, see the following logs:"
                             );
                             console.log(error);
-                            res.end(JSON.stringify({ err: "DB_ERR" }));
+                            req.error = "DB_ERR";
+                            res.redirect(this.authFailedRedirectPath);
                           }
-                          res.end(
-                            JSON.stringify({
-                              url: this.authSuccessfulRedirectPath,
-                            })
-                          );
+                          // TODO: Redirect back.
+                          res.redirect(this.authSuccessfulRedirectPath);
                         } catch (error) {
                           log(
                             "Error: We were not able to save the session to the db, check the following logs:"
                           );
                           console.log(error);
-                          res.end(JSON.stringify({ err: "DB_ERR" }));
+                          req.error = "DB_ERR";
+                          res.redirect(this.authFailedRedirectPath);
                         }
                       } catch (error) {
                         log(
                           "Error: We were not able to claims the tokens, see the following logs:"
                         );
                         console.log(error);
-                        res.end(JSON.stringify({ err: "CLAIMS_ERR" }));
+                        req.error = "CLAIMS_ERR";
+                        res.redirect(this.authFailedRedirectPath);
                       }
                     } catch (error) {
                       log(
                         "Error: We were not able to perform the callback for Authorization Server's authorization response, see the logs bellow:"
                       );
                       console.log(error);
-                      res.end(JSON.stringify({ err: "CALLBACK_ERR" }));
+                      req.error = "CALLBACK_ERR";
+                      res.redirect(this.authFailedRedirectPath);
                     }
                   } else {
                     log("Error: No state found in db");
-                    res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_DB" }));
+                    req.error = "NO_STATE_FOUND_IN_DB";
+                    res.redirect(this.authFailedRedirectPath);
                   }
                 } catch (error) {
                   log(
                     "Error: An error occured when fetching the state from the DB, see the error bellow:"
                   );
                   console.log(error);
-                  res.end(JSON.stringify({ err: "DB_ERR" }));
+                  req.error = "DB_ERR";
+                  res.redirect(this.authFailedRedirectPath);
                 }
               }
             } catch (error) {
@@ -299,9 +310,11 @@ export class SapperOIDCClient {
                 "Error: We were not able to get the params from the callback, see the following logs:"
               );
               console.log(error);
-              res.end(JSON.stringify({ err: "NO_PARAMS_FOUND" }));
+              req.error = "NO_PARAMS_FOUND";
+              res.redirect(this.authFailedRedirectPath);
             }
           } else if (isProtectedPath(path, this.protectedPaths)) {
+            // TODO: Not redirect?
             res.redirect(this.authPath);
           }
         }
@@ -313,6 +326,10 @@ export class SapperOIDCClient {
 
 function getSIDFromCookie(req: any): string | undefined {
   return req.headers.cookie ? parseCookie(req.headers.cookie).SID : undefined;
+}
+
+function getStateFromCookie(req: any): string | undefined {
+  return req.headers.cookie ? parseCookie(req.headers.cookie).state : undefined;
 }
 
 async function getTokenSetFromCookie(

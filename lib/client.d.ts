@@ -17,5 +17,3 @@ export declare function pathGuard(authPath: string, path: string, protectedPath:
         token_type: string;
     };
 }): void;
-export declare function auth(authPath: string): void;
-export declare function callback(): void;

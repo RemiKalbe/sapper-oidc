@@ -53,56 +53,6 @@ export function pathGuard(
     isProtectedPath(path, protectedPath) &&
     (user === null || user === undefined)
   ) {
-    auth(authPath);
-  }
-}
-
-export function auth(authPath: string) {
-  const stateID = uuidv4();
-  localStorage.setItem("stateID", stateID);
-  window
-    .fetch(authPath, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ stateID }),
-    })
-    .then((res) => {
-      res.json().then((json) => {
-        if (json.err === undefined || json.err === null) {
-          window.location.href = json.url;
-        } else {
-          throw new Error(json.err);
-        }
-      });
-    });
-}
-
-export function callback() {
-  const stateID = localStorage.getItem("stateID");
-  localStorage.removeItem("stateID");
-  if (stateID) {
-    window
-      .fetch(window.location.href, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ stateID }),
-      })
-      .then((res) => {
-        res.json().then((json) => {
-          if (json.err === undefined || json.err === null) {
-            window.location.href = json.url;
-          } else {
-            throw new Error(json.err);
-          }
-        });
-      });
-  } else {
-    throw new Error("NO_STATE_FOUND_IN_STR");
+    window.location.pathname = authPath;
   }
 }
