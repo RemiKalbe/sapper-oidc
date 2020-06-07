@@ -16,7 +16,7 @@ export async function silentRenew(
 ) {
   if (window !== undefined) {
     if (user !== null && user !== undefined) {
-      const expIn = user.raw.expires_at * 1000 - Date.now() - 100;
+      const expIn = user.raw.expires_at * 1000 - Date.now() - 120000;
       refresh(expIn, callback, refreshPath);
     }
   }
@@ -27,7 +27,7 @@ function refresh(expIn: number, callback: any, refreshPath: string) {
     const json = await response.json();
     window.clearInterval(interval);
     refresh(
-      json.raw.expires_at * 1000 - Date.now() - 100,
+      json.raw.expires_at * 1000 - Date.now() - 120000,
       callback,
       refreshPath
     );
