@@ -209,90 +209,100 @@ export class SapperOIDCClient {
           } else if (path === this.callbackPath && req.method == "POST") {
             try {
               const params = this.client.callbackParams(req.originalUrl);
-              const stateID = req.body.stateID;
-              if (stateID === null || stateID === undefined || stateID === "") {
-                log("Error: No state found");
-                res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_REQ" }));
-              } else {
-                try {
-                  const state = await this.redis.get(stateID);
-                  if (state) {
-                    try {
-                      const tokenSet = await this.client.callback(
-                        this.redirectURI,
-                        params,
-                        {
-                          state,
-                        }
-                      );
+              try {
+                const stateID = req.body.stateID;
+                if (
+                  stateID === null ||
+                  stateID === undefined ||
+                  stateID === ""
+                ) {
+                  log("Error: No state found");
+                  res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_REQ" }));
+                } else {
+                  try {
+                    const state = await this.redis.get(stateID);
+                    if (state) {
                       try {
-                        const claimed = tokenSet.claims();
-                        const resultToStore = { raw: tokenSet, claimed };
-                        const SID = uuidv4();
-                        // We create the user's session
+                        const tokenSet = await this.client.callback(
+                          this.redirectURI,
+                          params,
+                          {
+                            state,
+                          }
+                        );
                         try {
-                          await this.redis.set(
-                            String(SID),
-                            JSON.stringify(resultToStore),
-                            "EX",
-                            this.sessionMaxAge
-                          );
-                          res.setHeader(
-                            "Set-Cookie",
-                            serializeCookie("SID", String(SID), {
-                              httpOnly: !dev,
-                              secure: !dev,
-                              sameSite: true,
-                              maxAge: this.sessionMaxAge,
-                              path: "/",
-                            })
-                          );
+                          const claimed = tokenSet.claims();
+                          const resultToStore = { raw: tokenSet, claimed };
+                          const SID = uuidv4();
+                          // We create the user's session
                           try {
-                            await this.redis.del(stateID);
+                            await this.redis.set(
+                              String(SID),
+                              JSON.stringify(resultToStore),
+                              "EX",
+                              this.sessionMaxAge
+                            );
+                            res.setHeader(
+                              "Set-Cookie",
+                              serializeCookie("SID", String(SID), {
+                                httpOnly: !dev,
+                                secure: !dev,
+                                sameSite: true,
+                                maxAge: this.sessionMaxAge,
+                                path: "/",
+                              })
+                            );
+                            try {
+                              await this.redis.del(stateID);
+                            } catch (error) {
+                              log(
+                                "Error: We were not able to delete the state from the DB, see the following logs:"
+                              );
+                              console.log(error);
+                              res.end(JSON.stringify({ err: "DB_ERR" }));
+                            }
+                            res.end(
+                              JSON.stringify({
+                                url: this.authSuccessfulRedirectPath,
+                              })
+                            );
                           } catch (error) {
                             log(
-                              "Error: We were not able to delete the state from the DB, see the following logs:"
+                              "Error: We were not able to save the session to the db, check the following logs:"
                             );
                             console.log(error);
                             res.end(JSON.stringify({ err: "DB_ERR" }));
                           }
-                          res.end(
-                            JSON.stringify({
-                              url: this.authSuccessfulRedirectPath,
-                            })
-                          );
                         } catch (error) {
                           log(
-                            "Error: We were not able to save the session to the db, check the following logs:"
+                            "Error: We were not able to claims the tokens, see the following logs:"
                           );
                           console.log(error);
-                          res.end(JSON.stringify({ err: "DB_ERR" }));
+                          res.end(JSON.stringify({ err: "CLAIMS_ERR" }));
                         }
                       } catch (error) {
                         log(
-                          "Error: We were not able to claims the tokens, see the following logs:"
+                          "Error: We were not able to perform the callback for Authorization Server's authorization response, see the logs bellow:"
                         );
                         console.log(error);
-                        res.end(JSON.stringify({ err: "CLAIMS_ERR" }));
+                        res.end(JSON.stringify({ err: "CALLBACK_ERR" }));
                       }
-                    } catch (error) {
-                      log(
-                        "Error: We were not able to perform the callback for Authorization Server's authorization response, see the logs bellow:"
-                      );
-                      console.log(error);
-                      res.end(JSON.stringify({ err: "CALLBACK_ERR" }));
+                    } else {
+                      log("Error: No state found in db");
+                      res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_DB" }));
                     }
-                  } else {
-                    log("Error: No state found in db");
-                    res.end(JSON.stringify({ err: "NO_STATE_FOUND_IN_DB" }));
+                  } catch (error) {
+                    log(
+                      "Error: An error occured when fetching the state from the DB, see the error bellow:"
+                    );
+                    console.log(error);
+                    res.end(JSON.stringify({ err: "DB_ERR" }));
                   }
-                } catch (error) {
-                  log(
-                    "Error: An error occured when fetching the state from the DB, see the error bellow:"
-                  );
-                  console.log(error);
-                  res.end(JSON.stringify({ err: "DB_ERR" }));
                 }
+              } catch (error) {
+                log(
+                  "Error: body is undefined, have you forgot bodyParser middleware?"
+                );
               }
             } catch (error) {
               log(
@@ -301,8 +311,6 @@ export class SapperOIDCClient {
               console.log(error);
               res.end(JSON.stringify({ err: "NO_PARAMS_FOUND" }));
             }
-          } else if (isProtectedPath(path, this.protectedPaths)) {
-            res.redirect(this.authPath);
           }
         }
       }
