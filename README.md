@@ -42,7 +42,7 @@ export default {
 ```
 
 ```bash
-npm i sapper-oidc body-parser
+npm i --save-dev sapper-oidcv body-parser
 ```
 
 ### Create a confirguration file
