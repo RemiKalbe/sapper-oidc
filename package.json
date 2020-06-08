@@ -1,6 +1,6 @@
 {
   "name": "sapper-oidc",
-  "version": "0.8.4",
+  "version": "0.8.6",
   "description": "OIDC on the backend, session management & automatic token refresh on the frontend 🚀",
   "repository": {
     "type": "git",
