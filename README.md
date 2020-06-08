@@ -24,7 +24,7 @@ It has the following features<br>
 ## Installation
 
 🚧 You must install https://www.npmjs.com/package/rollup-plugin-node-externals
-`rollup.config.js`
+<br>`rollup.config.js`
 
 ```js
 import externals from "rollup-plugin-node-externals";
