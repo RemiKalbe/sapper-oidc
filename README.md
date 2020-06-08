@@ -23,8 +23,22 @@ It has the following features<br>
 
 ## Installation
 
-🚧🚧🚧 IMPORTANT 🚧🚧🚧<br>
-This project is in very early developpement, breaking changes, unhandled promise rejection and other great bugs are to be excepted until it reach v1.0.<br> <br>
+🚧 You must install https://www.npmjs.com/package/rollup-plugin-node-externals
+`rollup.config.js`
+
+```js
+import externals from "rollup-plugin-node-externals";
+```
+
+export default {
+......
+server: {
+......
+plugins: [externals()]
+......
+}
+......
+}
 
 ```bash
 npm i sapper-oidc body-parser
@@ -53,7 +67,7 @@ export const protectedPaths = [
 ### Server side configuration
 
 You need to wrap all your code in an immediately invoked async function<br>
-server.js
+`server.js`
 
 ```js
 import { authPath, refreshPath, protectedPaths } from "./OIDCConfig"; // The file we just created
@@ -150,7 +164,7 @@ Open your root `_layout.svelte` (or create one)
 I'd recommend that you create a Svelte store to store the data you get back from "user", and then you update it with the new data that you get from the callback function in "silentRenew". <br>
 Now create a svelte file with the SAME path as your `callbackPath` set in the options. <br>
 For example, if your path is "/cb" create a svelte file at the root of the routes folder named `cb.svelte`.<br>
-cb.svelte
+`cb.svelte`
 
 ```svelte
 <script>
@@ -169,7 +183,7 @@ cb.svelte
 
 Finaly create a svelte file with the SAME path as your `authPath` set in the options. <br>
 For example, if your path is "/auth" create a svelte file at the root of the routes folder named `auth.svelte`.<br>
-auth.svelte
+`auth.svelte`
 
 ```svelte
 <script>
