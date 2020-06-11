@@ -26,11 +26,13 @@ function refresh(expIn: number, callback: any, refreshPath: string) {
     const response = await window.fetch(refreshPath);
     const json = await response.json();
     window.clearInterval(interval);
-    refresh(
-      json.raw.expires_at * 1000 - Date.now() - 120000,
-      callback,
-      refreshPath
-    );
+    if (json) {
+      refresh(
+        json.raw.expires_at * 1000 - Date.now() - 120000,
+        callback,
+        refreshPath
+      );
+    }
     return callback(json);
   }, expIn);
 }
