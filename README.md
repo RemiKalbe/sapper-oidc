@@ -42,7 +42,7 @@ export default {
 ```
 
 ```bash
-npm i --save-dev sapper-oidc body-parser
+npm i --save-dev sapper-oidc
 ```
 
 ### Create a confirguration file
@@ -73,7 +73,6 @@ You need to wrap all your code in an immediately invoked async function<br>
 ```js
 import { authPath, refreshPath, protectedPaths } from "./OIDCConfig"; // The file we just created
 import { SapperOIDCClient } from "sapper-oidc/lib/server";
-import bodyParser from "body-parser";
 
 (async function () {
   const options = {
@@ -99,7 +98,6 @@ import bodyParser from "body-parser";
   await client.init(); // Don't forget it 🚦
 
   polka()
-    .use(bodyParser.json()) // Don't forget that 🚦
     .use(await client.middleware()) // Don't forget that 🚦
     .use(
       compression({ threshold: 0 }),
