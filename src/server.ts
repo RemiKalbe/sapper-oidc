@@ -5,7 +5,7 @@ import {
   ResponseType,
   TokenSet,
 } from "openid-client";
-import * as redis from "redis";
+import * as redis from "async-redis";
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import { v4 as uuidv4 } from "uuid";
 import { ProtectedPath, isProtectedPath } from "./both";
