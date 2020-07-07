@@ -170,7 +170,7 @@ export class SapperOIDCClient {
             // Get get a StateID from the frontend, generate a state and store
             // it in the db, it will be used later to validate that no one stoled the access code.
             const state = generators.state();
-            const stateID = req.body.stateID;
+            const stateID = req.query.stateID;
             if (stateID) {
               try {
                 await this.redis.set(
@@ -210,7 +210,7 @@ export class SapperOIDCClient {
             try {
               const params = this.client.callbackParams(req.originalUrl);
               try {
-                const stateID = req.body.stateID;
+                const stateID: String = req.query.stateID;
                 if (
                   stateID === null ||
                   stateID === undefined ||

@@ -64,13 +64,8 @@ export function auth(authPath: string) {
   const stateID = uuidv4();
   localStorage.setItem("stateID", stateID);
   window
-    .fetch(authPath, {
+    .fetch(`${authPath}?stateID=${stateID}`, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ stateID }),
     })
     .then((res) => {
       res.json().then((json) => {
@@ -88,13 +83,8 @@ export function callback(redirectBack: boolean) {
   localStorage.removeItem("stateID");
   if (stateID) {
     window
-      .fetch(window.location.href, {
+      .fetch(`${window.location.href}&stateID=${stateID}`, {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ stateID }),
       })
       .then((res) => {
         res.json().then((json) => {
