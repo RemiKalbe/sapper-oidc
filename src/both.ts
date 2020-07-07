@@ -9,10 +9,10 @@ export function isProtectedPath(
 ): boolean {
   let is = false;
   for (let el of protectedPaths) {
-    const indexOf = el.path.indexOf(path);
+    const indexOf = path.indexOf(el.path);
     const andNextIsANewPath =
-      indexOf + el.path.length + 1 >= path.length &&
-      path[indexOf + el.path.length + 1] === "/";
+      indexOf + el.path.length <= path.length &&
+      path[indexOf + el.path.length] === "/";
     if (
       (indexOf === 0 && el.recursive && andNextIsANewPath) ||
       el.path === path

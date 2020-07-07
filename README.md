@@ -23,18 +23,21 @@ It has the following features<br>
 
 ## Installation
 
-🚧 You must install https://www.npmjs.com/package/rollup-plugin-node-externals<br><br>
+🚧 You must install https://www.npmjs.com/package/rollup-plugin-node-externals<br>
+🚧 And https://www.npmjs.com/package/@rollup/plugin-json<br><br>
 `rollup.config.js`
 
 ```js
 import externals from "rollup-plugin-node-externals";
-
+import json from "@rollup/plugin-json";
 
 export default {
     ......
     server: {
         ......
-        plugins: [externals()]
+        /* IMPORTANT, externals() needs to be on
+        the top of the plugins array*/
+        plugins: [externals(), json()]
         ......
     }
     ......
