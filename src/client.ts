@@ -89,12 +89,8 @@ export function callback(redirectBack: boolean) {
       .then((res) => {
         res.json().then((json) => {
           const back = localStorage.getItem("where_at");
-          if (
-            (json.err === undefined || json.err === null) &&
-            back !== undefined &&
-            back !== null
-          ) {
-            if (redirectBack) {
+          if (json.err === undefined || json.err === null) {
+            if (redirectBack && back !== undefined && back !== null) {
               window.location.href = back;
             } else {
               window.location.href = json.url;
