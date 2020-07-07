@@ -130,6 +130,8 @@ export class SapperOIDCClient {
                 } else {
                   req.user = toBrowser;
                 }
+              } else {
+                this.redis.del(SID);
               }
             } else {
               try {
@@ -154,6 +156,7 @@ export class SapperOIDCClient {
                   req.user = toBrowser;
                 }
               } catch (error) {
+                this.redis.del(SID);
                 log(
                   "Error: We were not able to get the data from the token (claims)"
                 );
@@ -161,6 +164,7 @@ export class SapperOIDCClient {
             }
             userHasValidSession = true;
           } catch (error) {
+            this.redis.del(SID);
             log("Unknow error:");
             console.log(error);
           }
