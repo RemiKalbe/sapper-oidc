@@ -16,6 +16,9 @@ jobs:
                 name: Installing git
                 command: apk add --no-cache git
             - run:
+                name: Installing sudo
+                command: set -ex && apk --no-cache add sudo
+            - run:
                 name: Clone Ory/hydra
                 command: git clone https://github.com/ory/hydra.git
             - run:
