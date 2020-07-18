@@ -25,7 +25,9 @@ jobs:
                 name: Start Ory/Hydra
                 command: |
                   set -x
-                  docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build
+                  cd hydra
+                  docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
+                  cd ../
             - run:
                 name: Wait for Ory/Hydra
                 command: dockerize -wait tcp://localhost:4444 -timeout 1m
