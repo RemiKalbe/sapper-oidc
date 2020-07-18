@@ -4,6 +4,7 @@ orbs:
 jobs:
   build-and-test:
     docker:
+      - image: circleci/node
       - image: circleci/redis:6-alpine3.12
     executor:
       name: node/default
