@@ -10,6 +10,7 @@ jobs:
       name: node/default
     steps:
       - checkout
+      - setup_remote_docker
       - node/with-cache:
           steps:
             - run:
@@ -37,7 +38,9 @@ jobs:
                   chmod +x /usr/local/bin/docker-compose
             - run:
                 name: Start Ory/Hydra
-                command: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build
+                command: |
+                  set -x
+                  docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build
             - run:
                 name: Wait for Ory/Hydra
                 command: dockerize -wait tcp://localhost:4444 -timeout 1m
