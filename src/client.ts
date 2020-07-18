@@ -104,3 +104,45 @@ export function callback(redirectBack: boolean) {
     throw new Error("NO_STATE_FOUND_IN_STR");
   }
 }
+
+export function silentCallback(goto: (e: any) => {}, callback: (e: any) => {}) {
+  const stateID = localStorage.getItem("stateID");
+  const back = localStorage.getItem("where_at");
+  localStorage.removeItem("stateID");
+  if (stateID) {
+    window
+      .fetch(`${window.location.href}&stateID=${stateID}`, {
+        method: "POST",
+        credentials: "same-origin",
+      })
+      .then((res) => {
+        res.json().then((json) => {
+          if (json && json.raw && json.claimed) {
+            callback(json);
+          }
+          goto(back ? back : "/");
+        });
+      });
+  } else if (back) {
+    goto(back);
+  } else {
+    goto("/");
+  }
+}
+
+export function silentLogin() {
+  if (window) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect_to = urlParams.get("redirect_to");
+    const stateID = urlParams.get("stateID");
+    const back = urlParams.get("where_at");
+    if (back && redirect_to && stateID) {
+      const whereAt = window.atob(back);
+      localStorage.setItem("where_at", whereAt);
+      localStorage.setItem("stateID", stateID);
+      window.location.replace(window.atob(redirect_to));
+    } else {
+      throw new Error("MISSING_EXPECTED_PARAMS");
+    }
+  }
+}

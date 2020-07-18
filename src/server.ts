@@ -18,12 +18,15 @@ interface Options {
   clientID: string;
   clientSecret: string;
   redirectURI: string;
+  silentRedirectURI?: string;
   sessionMaxAge: number;
   authRequestMaxAge: number;
   authPath: string;
   protectedPaths: [ProtectedPath];
   authSuccessfulRedirectPath: string;
   callbackPath: string;
+  silentCallbackPath?: string;
+  silentPath?: string;
   scope: string;
   refreshPath: string;
   redisURL?: string;
@@ -34,6 +37,7 @@ export class SapperOIDCClient {
   private clientID: string;
   private clientSecret: string;
   private redirectURI: string;
+  private silentRedirectURI?: string;
   private responseTypes: [ResponseType];
   private sessionMaxAge: number;
   private authRequestMaxAge: number;
@@ -43,8 +47,10 @@ export class SapperOIDCClient {
   private authPath: string;
   private protectedPaths: [ProtectedPath];
   private callbackPath: string;
+  private silentCallbackPath?: string;
   private authSuccessfulRedirectPath: string;
   private refreshPath: string;
+  private silentPath?: string;
   private scope: string;
   private ok!: boolean;
   private debug: boolean;
@@ -53,6 +59,9 @@ export class SapperOIDCClient {
     this.clientID = options.clientID;
     this.clientSecret = options.clientSecret;
     this.redirectURI = options.redirectURI;
+    this.silentRedirectURI = options.silentRedirectURI
+      ? options.silentRedirectURI
+      : undefined;
     this.responseTypes = ["code"];
     this.issuerURL = options.issuerURL;
     this.sessionMaxAge = options.sessionMaxAge;
@@ -63,17 +72,21 @@ export class SapperOIDCClient {
     this.authPath = options.authPath;
     this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
+    this.silentCallbackPath = options.silentCallbackPath;
     this.authSuccessfulRedirectPath = options.authSuccessfulRedirectPath;
     this.refreshPath = options.refreshPath;
+    this.silentPath = options.silentPath ? options.silentPath : undefined;
     this.scope = options.scope;
     this.debug = options.debug ? options.debug : false;
   }
   async init() {
     const discoveredIssuer = await Issuer.discover(this.issuerURL);
+    let redirect_uris = [this.redirectURI];
+    if (this.silentRedirectURI) redirect_uris.push(this.silentRedirectURI);
     this.client = new discoveredIssuer.Client({
       client_id: this.clientID,
       client_secret: this.clientSecret,
-      redirect_uris: [this.redirectURI],
+      redirect_uris,
       response_types: this.responseTypes,
     });
     this.ok = true;
@@ -87,7 +100,7 @@ export class SapperOIDCClient {
       // We get the current path without any query string
       const path = req.originalUrl.replace(/\?.*$/, "");
       // We don't want our tokens to be refreshed when the browser fetch static files.
-      if (!path.includes(".")) {
+      if (!path.includes(".") && path !== "__sapper__") {
         // Polka doesn't have res.redirect
         res.redirect = (location: string) => {
           let str = `Redirecting to ${location}`;
@@ -196,6 +209,7 @@ export class SapperOIDCClient {
                 const redirectURL = this.client.authorizationUrl({
                   scope: this.scope,
                   code_challenge_method: "S256",
+                  redirect_uri: this.redirectURI,
                   state,
                 });
                 res.end(JSON.stringify({ url: redirectURL }));
@@ -210,7 +224,10 @@ export class SapperOIDCClient {
               log("Error: No stateID found in request");
               res.end(JSON.stringify({ err: "NO_STATEID_FOUND_IN_REQ" }));
             }
-          } else if (path === this.callbackPath && req.method == "POST") {
+          } else if (
+            (path === this.callbackPath || path === this.silentCallbackPath) &&
+            req.method == "POST"
+          ) {
             try {
               const params = this.client.callbackParams(req.originalUrl);
               try {
@@ -228,7 +245,9 @@ export class SapperOIDCClient {
                     if (state) {
                       try {
                         const tokenSet = await this.client.callback(
-                          this.redirectURI,
+                          path === this.callbackPath
+                            ? this.redirectURI
+                            : this.silentRedirectURI,
                           params,
                           {
                             state,
@@ -237,6 +256,17 @@ export class SapperOIDCClient {
                         try {
                           const claimed = tokenSet.claims();
                           const resultToStore = { raw: tokenSet, claimed };
+                          const toBrowser = {
+                            // We don't want the refresh token to be sent to the browser
+                            raw: {
+                              access_token: tokenSet.access_token,
+                              id_token: tokenSet.id_token,
+                              expires_at: tokenSet.expires_at,
+                              scope: tokenSet.scope,
+                              token_type: tokenSet.token_type,
+                            },
+                            claimed,
+                          };
                           const SID = uuidv4();
                           // We create the user's session
                           try {
@@ -265,11 +295,15 @@ export class SapperOIDCClient {
                               console.log(error);
                               res.end(JSON.stringify({ err: "DB_ERR" }));
                             }
-                            res.end(
-                              JSON.stringify({
-                                url: this.authSuccessfulRedirectPath,
-                              })
-                            );
+                            if (path !== this.silentCallbackPath) {
+                              res.end(
+                                JSON.stringify({
+                                  url: this.authSuccessfulRedirectPath,
+                                })
+                              );
+                            } else {
+                              res.end(JSON.stringify(toBrowser));
+                            }
                           } catch (error) {
                             log(
                               "Error: We were not able to save the session to the db, check the following logs:"
@@ -289,7 +323,12 @@ export class SapperOIDCClient {
                           "Error: We were not able to perform the callback for Authorization Server's authorization response, see the logs bellow:"
                         );
                         console.log(error);
-                        res.end(JSON.stringify({ err: "CALLBACK_ERR" }));
+                        res.end(
+                          JSON.stringify({
+                            err: "CALLBACK_ERR",
+                            op_err: error.error,
+                          })
+                        );
                       }
                     } else {
                       log("Error: No state found in db");
@@ -315,6 +354,33 @@ export class SapperOIDCClient {
               console.log(error);
               res.end(JSON.stringify({ err: "NO_PARAMS_FOUND" }));
             }
+          } else if (
+            this.silentPath &&
+            path !== this.silentPath &&
+            path !== this.authPath &&
+            path !== this.callbackPath &&
+            this.silentRedirectURI &&
+            path !== this.silentCallbackPath
+          ) {
+            const state = generators.state();
+            const stateID = uuidv4();
+            await this.redis.set(stateID, state);
+            const redirectURL = `${this.client.authorizationUrl({
+              scope: this.scope,
+              code_challenge_method: "S256",
+              state,
+              redirect_uri: this.silentRedirectURI,
+            })}&prompt=none`;
+            // To avoid any issues with the queries inside other queries we encode the two URLs in base64
+            const buffRedirectTo = new Buffer(redirectURL);
+            const base64RedirectTo = buffRedirectTo.toString("base64");
+            const where_at = req.originalUrl;
+            const buffWhere_at = new Buffer(where_at);
+            const base64Where_at = buffWhere_at.toString("base64");
+            console.log(where_at);
+            res.redirect(
+              `${this.silentPath}?redirect_to=${base64RedirectTo}&stateID=${stateID}&where_at=${base64Where_at}`
+            );
           }
         }
       }
