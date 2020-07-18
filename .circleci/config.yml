@@ -4,7 +4,7 @@ orbs:
 jobs:
   build-and-test:
     docker:
-      - image: node:14-alpine
+      - image: circleci/node
       - image: circleci/redis:6-alpine3.12
     executor:
       name: node/default
@@ -14,15 +14,6 @@ jobs:
       - node/with-cache:
           steps:
             - run:
-                name: Installing git
-                command: apk add --no-cache git
-            - run:
-                name: Installing sudo
-                command: set -ex && apk --no-cache add sudo
-            - run:
-                name: Installing curl
-                command: apk --no-cache add curl
-            - run:
                 name: Clone Ory/hydra
                 command: git clone https://github.com/ory/hydra.git
             - run:
@@ -30,12 +21,6 @@ jobs:
                 command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
                 environment:
                   DOCKERIZE_VERSION: v0.3.0
-            - run:
-                name: Install Docker Compose
-                command: |
-                  set -x
-                  curl -L https://github.com/docker/compose/releases/download/1.25.3/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-                  chmod +x /usr/local/bin/docker-compose
             - run:
                 name: Start Ory/Hydra
                 command: |
