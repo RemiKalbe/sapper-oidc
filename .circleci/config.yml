@@ -1,0 +1,52 @@
+version: 2.1
+orbs:
+  node: circleci/node@1.1.6
+jobs:
+  build-and-test:
+    docker:
+      - image: circleci/redis:6-alpine3.12
+    executor:
+      name: node/default
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run: 
+              name: Clone Ory/hydra
+              command: git clone https://github.com/ory/hydra.git
+            - run:
+              name: install dockerize
+              command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+              environment:
+              DOCKERIZE_VERSION: v0.3.0
+            - run: 
+              name: Start Ory/Hydra
+              command: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build
+            - run:
+              name: Wait for Ory/Hydra
+              command: dockerize -wait tcp://localhost:4444 -timeout 1m
+            - run:
+              name: Setting up OIDC client
+              command: docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+            - run: 
+              name: Installing dependencies 
+              command: npm i
+            - run:
+              name: Building
+              command: npm build
+            - run: cd tests
+            - run: 
+              name: Installing test dependencies 
+              command: npm i
+            - run: rm -r node_modules/sapper-oidc/lib
+            - run: cp -r ../lib node_modules/sapper-oidc/lib
+            - run:
+              name: Starting dev server
+              command: CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev
+            - run: 
+              name: Starting tests
+              command: npx cypress run
+workflows:
+    build-and-test:
+      jobs:
+        - build-and-test
