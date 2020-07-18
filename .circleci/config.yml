@@ -22,10 +22,13 @@ jobs:
                 name: Clone Ory/hydra
                 command: git clone https://github.com/ory/hydra.git
             - run:
-                name: install dockerize
+                name: Install dockerize
                 command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
                 environment:
                   DOCKERIZE_VERSION: v0.3.0
+            - run:
+                name: Install docker-compose
+                command: sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose
             - run:
                 name: Start Ory/Hydra
                 command: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build
