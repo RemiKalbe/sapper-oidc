@@ -5,7 +5,6 @@ beforeEach(() => {
 describe("Login by clicking on login btn", () => {
   it("Click on the login button and log in", () => {
     cy.visit("http://localhost:3001");
-    cy.url().should("include", "silentcb");
     cy.get("#login").click();
     cy.get("#email").type("foo@bar.com");
     cy.get("#password").type("foobar");
@@ -19,7 +18,6 @@ describe("Login by clicking on login btn", () => {
         cy.get("#accept").click();
       }
     });
-    cy.url().should("include", "cb");
     cy.get("h1").should(($h) => {
       expect($h).to.contain("Yes");
     });
