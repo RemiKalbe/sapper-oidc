@@ -30,7 +30,7 @@ jobs:
                   cd ../
             - run:
                 name: Wait for Ory/Hydra
-                command: dockerize -wait tcp://localhost:4444 -timeout 10m
+                command: dockerize -wait http://localhost:4444/health/ready -timeout 10m
             - run:
                 name: Setting up OIDC client
                 command: docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
