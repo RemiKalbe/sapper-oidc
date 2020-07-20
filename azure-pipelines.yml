@@ -59,7 +59,7 @@ steps:
 - script: cd tests && npm i
   displayName: 'Installing test dependencies'
 
-- script: rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
+- script: ls && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
   displayName: 'Copying lib to be tested'
 
 - script: sudo npm install forever -g
