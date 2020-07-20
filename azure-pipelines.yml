@@ -49,7 +49,7 @@ steps:
 - script: cd tests && npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
   displayName: 'Installing test dependencies'
 
-- script: docker run -p 6379:6379 redis
+- script: docker run -p 6379:6379 redis -d
   displayName: Starting redis
 
 - script: dockerize -wait tcp://localhost:6379 -timeout 3m
