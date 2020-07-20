@@ -56,17 +56,14 @@ steps:
 - script: npm build
   displayName: 'Building'
 
-- script: cd tests && npm i
+- script: cd tests && npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
   displayName: 'Installing test dependencies'
 
-- script: ls node_modules && ls node_modules/sapper-oidc && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
-  displayName: 'Copying lib to be tested'
-
-- script: sudo npm install forever -g
+- script: cd tests && sudo npm install forever -g
   displayName: Installing forever
 
-- script: CLIENT_ID=client-id CLIENT_SECRET=client-secret forever start npm run dev
+- script: cd tests && CLIENT_ID=client-id CLIENT_SECRET=client-secret forever start npm run dev
   displayName: 'Starting dev server'
 
-- script: npx cypress run
+- script: cd tests && npx cypress run
   displayName: 'Starting tests'
