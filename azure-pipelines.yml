@@ -62,7 +62,7 @@ steps:
 - script: cd tests && sudo npm install forever -g
   displayName: Installing forever
 
-- script: cd tests && CLIENT_ID=client-id CLIENT_SECRET=client-secret forever start npm run dev
+- script: cd tests && (CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev&)
   displayName: 'Starting dev server'
 
 - script: cd tests && npx cypress run
