@@ -19,3 +19,5 @@ export declare function pathGuard(authPath: string, path: string, protectedPath:
 }): void;
 export declare function auth(authPath: string): void;
 export declare function callback(redirectBack: boolean): void;
+export declare function silentCallback(goto: (e: any) => {}, callback: (e: any) => {}): void;
+export declare function silentLogin(): void;

@@ -4,12 +4,15 @@ interface Options {
     clientID: string;
     clientSecret: string;
     redirectURI: string;
+    silentRedirectURI?: string;
     sessionMaxAge: number;
     authRequestMaxAge: number;
     authPath: string;
     protectedPaths: [ProtectedPath];
     authSuccessfulRedirectPath: string;
     callbackPath: string;
+    silentCallbackPath?: string;
+    silentPath?: string;
     scope: string;
     refreshPath: string;
     redisURL?: string;
@@ -19,6 +22,7 @@ export declare class SapperOIDCClient {
     private clientID;
     private clientSecret;
     private redirectURI;
+    private silentRedirectURI?;
     private responseTypes;
     private sessionMaxAge;
     private authRequestMaxAge;
@@ -28,8 +32,10 @@ export declare class SapperOIDCClient {
     private authPath;
     private protectedPaths;
     private callbackPath;
+    private silentCallbackPath?;
     private authSuccessfulRedirectPath;
     private refreshPath;
+    private silentPath?;
     private scope;
     private ok;
     private debug;
