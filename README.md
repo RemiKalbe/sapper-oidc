@@ -1,19 +1,22 @@
 ![logo of the package](https://i.imgur.com/Pv05YSp.png)
 
-# Sapper OIDC
+# Sapper OIDC [![Build Status](https://dev.azure.com/remikalbe0563/sapper-oidc/_apis/build/status/RemiKalbe.sapper-oidc?branchName=master)](https://dev.azure.com/remikalbe0563/sapper-oidc/_build/latest?definitionId=1&branchName=master)
 
-This library is based on top of [node-openid-client](https://github.com/panva/node-openid-client) and allow you to quickly and effortlessly add OIDC to your sapper application. <br>
-
-## Introduction
-
-More and more browsers are starting to block third party cookies by default, and chrome will too in ~2022. Meaning any type of secure client-side authentication is dead if your identity provider is at a different domain, which is probably the case. <br>
-This library is a way to solve this issue by using sapper as a sort of proxy. <br>
+This library is based on top of [node-openid-client](https://github.com/panva/node-openid-client) and allow you to quickly and effortlessly add OIDC to your sapper application. It is first meant to be used in a first-party scenario where you are the owner of the IDP (i.e you use Okta, Auth0, IdentityServer, Ory Hydra...); That being said, it works with anything that follows the open id connect specification.<br><br>
+🧪 Please note that this library is experimental and I wouldn't recommend you to use it in production for now.<br><br>
 It has the following features<br>
 
 - 👮‍♀️ Page protection (Will redirect the user to login, if on a page set to be protected)
-- 🚴‍♂️ Automatic token refresh on the frontend (and backend)
+- 🚴‍♂️ Automatic token refresh on the frontend and backend (without using an iframe)
 - 🗄 Session management
 - ↪️ Automatic redirection back to where the user was before the auth flow initiated.
+- 🔮 Silent login if the user already has a session at the IDP (without using an iframe)
+
+## Todo
+
+- [ ] Add a way to logout
+- [ ] Add a way to login programmatically (Right now it log you in only if you navigate on a protected path or if you enabled Silent Login)
+- [ ] Support older versions of redis
 
 ## Limitation
 
@@ -82,7 +85,8 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
     issuerURL: "https://accounts.google.com/", // See your identity provider documentation
     clientID: "8db8f07d-547d-4e8b-8d8b-218fc08b7188",
     clientSecret: "3nxeS5K3mFe.5Hv7Gvjp6xUWq~",
-    redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
+    redirectURI: "http://127.0.0.1:3000/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow; you must add this url to your IDP authorized redirect URI.
+    silentRedirectURI: "http://localhost:3001/silentcb", // (OPTIONAL) This is the callback URL if you want to silently login the user, you must add this URL to your IDP authorized redirect URI if you add this line.
     sessionMaxAge: 60 * 60 * 24 * 7, // How long does a user's session lives for (in seconds)
     authRequestMaxAge: 60 * 60, // How much time before an auth request is deemed invalid (in seconds).
     authPath,
@@ -93,6 +97,7 @@ import { SapperOIDCClient } from "sapper-oidc/lib/server";
       where he was before */
     authSuccessfulRedirectPath: "http://127.0.0.1:3000/",
     callbackPath: "/cb", // The route of the callback
+    silentCallbackPath: "/silentcb", // (OPTIONAL) The route of the silent callback, adds this line only if you have added 'silentRedirectURI' and as I already said, the paths MUST match.
     scope: "openid profile offline_access", // You must have at least openid and offline_access
     redisURL: "", // The URL of the Redis server. Format: [redis[s]:]//[[user][:password@]][host][:port][/db-number][?db=db-number[&password=bar[&option=value]]] (More info avaliable at IANA).
     // It default to: 127.0.0.1:6379 with no password
@@ -203,7 +208,33 @@ For example, if your path is "/auth" create a svelte file at the root of the rou
 </script>
 ```
 
-And done 😇<br>
+And done 😇<br><br>
+
+### OPTIONAL
+
+If you've added `silentRedirectURI` and `silentRedirectURI` you must add one thing.<br>
+Create a svelte file that has the same path as `silentRedirectURI`, example, if `silentRedirectURI` is set to `/silentcb` create a svelte file at the root of your routes folder like so `silentcb.svelte`.<br>
+`silentcb.svelte`
+
+```svelte
+<script>
+  import { onMount } from "svelte";
+  import { silentCallback } from "sapper-oidc/lib/client";
+  import { goto } from "@sapper/app";
+
+  onMount(() => {
+    try {
+      silentCallback(goto, (user) => {
+        /* Do the same thing here as you where doing with _layout.svelte
+          which is saving the data you get back to the same store.*/
+      });
+    } catch (error) {
+      // As this is supposed to be something 'silent' the only error that could be thrown is if the library failed to fetch the server.
+    }
+  });
+</script>
+
+```
 
 ### Errors
 
