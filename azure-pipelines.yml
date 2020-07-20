@@ -33,8 +33,10 @@ steps:
   displayName: 'Wait for Ory/Hydra'
 
 - script: |
-    cd hydra
-    docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+    mkdir hydra-client
+    cd hydra-client
+    wget -c https://github.com/ory/hydra/releases/download/v1.6.0/hydra_1.6.0_linux_64-bit.tar.gz -O - | tar -xz
+    hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
   displayName: 'Setting up OIDC client'
 
 - script: npm i
