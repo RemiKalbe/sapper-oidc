@@ -25,20 +25,16 @@ steps:
 - script: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
   displayName: 'Install dockerize'
 
-- script: |
-        cd hydra
-        docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
-        cd ../
+- script: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
   displayName: 'Start Ory/Hydra'
+  workingDirectory: $(Build.SourcesDirectory)/hydra
 
 - script: dockerize -wait http://localhost:4444/health/ready -timeout 10m
   displayName: 'Wait for Ory/Hydra'
 
-- script: |
-        cd hydra
-        docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
-        cd ../
+- script: docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
   displayName: 'Setting up OIDC client'
+  workingDirectory: $(Build.SourcesDirectory)/hydra
 
 - script: npm i
   displayName: 'Installing dependencies'
@@ -46,8 +42,9 @@ steps:
 - script: npm build
   displayName: 'Building'
 
-- script: cd tests && npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
+- script: npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
   displayName: 'Installing test dependencies'
+  workingDirectory: $(Build.SourcesDirectory)/tests
 
 - script: docker run -d -p 6379:6379 redis 
   displayName: Starting redis
@@ -55,8 +52,31 @@ steps:
 - script: dockerize -wait tcp://localhost:6379 -timeout 3m
   displayName: 'Wait for redis'
 
-- script: cd tests && (CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev&)
+- script: (CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev&)
   displayName: 'Starting dev server'
+  workingDirectory: $(Build.SourcesDirectory)/tests
 
-- script: cd tests && npx cypress run
+- script: npx cypress run
   displayName: 'Starting tests'
+  workingDirectory: $(Build.SourcesDirectory)/tests
+
+- task: PublishPipelineArtifact@0
+  displayName: 'Publish Screenshots (Cypress)'
+  condition: failed()
+  inputs:
+    artifactName: 'screenshots'
+    targetPath: '$(Build.SourcesDirectory)/test/e2e/screenshots'
+
+- task: PublishPipelineArtifact@0
+  displayName: 'Publish Videos (Cypress)'
+  condition: failed()
+  inputs:
+    artifactName: 'videos'
+    targetPath: '$(Build.SourcesDirectory)/test/e2e/videos'
+
+- task: PublishTestResults@2
+  displayName: Publish test results (Cypress)
+  condition: succeededOrFailed()
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: '$(Build.SourcesDirectory)/test/cypress-junit-report.*.xml'
