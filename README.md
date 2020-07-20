@@ -212,7 +212,7 @@ And done 😇<br><br>
 
 ### OPTIONAL
 
-If you've added `silentRedirectURI` and `silentRedirectURI` you must add one thing.<br>
+If you've added `silentRedirectURI` and `silentCallbackPath` you must add one thing.<br>
 Create a svelte file that has the same path as `silentRedirectURI`, example, if `silentRedirectURI` is set to `/silentcb` create a svelte file at the root of your routes folder like so `silentcb.svelte`.<br>
 `silentcb.svelte`
 
