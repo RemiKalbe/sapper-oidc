@@ -17,6 +17,7 @@ It has the following features<br>
 - [ ] Add a way to logout
 - [ ] Add a way to login programmatically (right now it logs you in only if you navigate on a protected path or if you enable silent login)
 - [ ] Support older versions of redis
+- [ ] Less boilerplate
 
 ## Limitation
 
@@ -219,14 +220,21 @@ Create a svelte file that has the same path as `silentCallbackPath`, example, if
 ```svelte
 <script>
   import { onMount } from "svelte";
-  import { silentCallback } from "sapper-oidc/lib/client";
+  import { silentCallback, silentRenew } from "sapper-oidc/lib/client";
   import { goto } from "@sapper/app";
 
   onMount(() => {
     try {
-      silentCallback(goto, (user) => {
+      silentCallback(goto, async (user) => {
         /* Do the same thing here as you where doing with _layout.svelte
           which is saving the data you get back to the same store.*/
+          await silentRenew(
+          refreshPath,
+          (e) => {
+            // Do it also here
+          },
+          user
+        );
       });
     } catch (error) {
       // As this is supposed to be something 'silent' the only error that could be thrown is if the library failed to fetch the server.
