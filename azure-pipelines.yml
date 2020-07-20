@@ -1,0 +1,69 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+resources:
+  containers:
+  - container: redis
+    image: redis
+    ports:
+    - 6379
+
+variables:
+- name: DOCKERIZE_VERSION
+  value: v0.3.0 
+
+services:
+  redis: redis
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
+
+- script: git clone https://github.com/ory/hydra.git
+  displayName: 'Clone Ory/hydra'
+
+- script: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+  displayName: 'Install dockerize'
+
+- script: |
+        cd hydra
+        docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
+        cd ../
+  displayName: 'Start Ory/Hydra'
+
+- script: dockerize -wait http://localhost:4444/health/ready -timeout 10m
+  displayName: 'Wait for Ory/Hydra'
+
+- script: docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+  displayName: 'Setting up OIDC client'
+
+- script: npm i
+  displayName: 'Installing dependencies'
+
+- script: npm build
+  displayName: 'Building'
+
+- script: cd tests && npm i
+  displayName: 'Installing test dependencies'
+
+- script: rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
+  displayName: 'Copying lib to be tested'
+
+- script: sudo npm install forever -g
+  displayName: Installing forever
+
+- script: CLIENT_ID=client-id CLIENT_SECRET=client-secret forever start npm run dev
+  displayName: 'Starting dev server'
+
+- script: npx cypress run
+  displayName: 'Starting tests'
