@@ -9,19 +9,9 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-resources:
-  containers:
-  - container: redis
-    image: redis
-    ports:
-    - 6379
-
 variables:
 - name: DOCKERIZE_VERSION
   value: v0.3.0 
-
-services:
-  redis: redis
 
 steps:
 - task: NodeTool@0
@@ -59,8 +49,11 @@ steps:
 - script: cd tests && npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
   displayName: 'Installing test dependencies'
 
-- script: cd tests && sudo npm install forever -g
-  displayName: Installing forever
+- script: docker run -p 6379:6379 redis
+  displayName: Starting redis
+
+- script: dockerize -wait tcp://localhost:6379 -timeout 3m
+  displayName: 'Wait for redis'
 
 - script: cd tests && (CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev&)
   displayName: 'Starting dev server'
