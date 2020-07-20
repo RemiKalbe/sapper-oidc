@@ -44,7 +44,10 @@ steps:
 - script: dockerize -wait http://localhost:4444/health/ready -timeout 10m
   displayName: 'Wait for Ory/Hydra'
 
-- script: docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+- script: |
+        cd hydra
+        docker-compose -f quickstart.yml exec hydra hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+        cd ../
   displayName: 'Setting up OIDC client'
 
 - script: npm i
