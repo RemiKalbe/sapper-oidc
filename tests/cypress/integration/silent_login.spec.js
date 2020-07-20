@@ -15,6 +15,7 @@ describe("Login by clicking on login btn", () => {
         cy.get("#openid").check();
         cy.get("#profile").check();
         cy.get("#offline").check();
+        cy.get("remember").check();
         cy.get("#accept").click();
       }
     });
