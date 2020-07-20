@@ -15,7 +15,7 @@ It has the following features<br>
 ## Todo
 
 - [ ] Add a way to logout
-- [ ] Add a way to login programmatically (Right now it log you in only if you navigate on a protected path or if you enabled Silent Login)
+- [ ] Add a way to login programmatically (right now it logs you in only if you navigate on a protected path or if you enable silent login)
 - [ ] Support older versions of redis
 
 ## Limitation
