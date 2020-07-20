@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { silentCallback, silentRenew } from "sapper-oidc/lib/client";
+  import { refreshPath } from "../OIDCConfig";
   import { goto } from "@sapper/app";
   import { accessToken, IDToken, expireAt } from "../userStore";
 

@@ -221,6 +221,7 @@ Create a svelte file that has the same path as `silentCallbackPath`, example, if
 <script>
   import { onMount } from "svelte";
   import { silentCallback, silentRenew } from "sapper-oidc/lib/client";
+  import { refreshPath } from "../OIDCConfig";
   import { goto } from "@sapper/app";
 
   onMount(() => {
