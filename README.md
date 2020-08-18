@@ -1,6 +1,6 @@
 ![logo of the package](https://i.imgur.com/Pv05YSp.png)
 
-# Sapper OIDC [![Build Status](https://dev.azure.com/remikalbe0563/sapper-oidc/_apis/build/status/RemiKalbe.sapper-oidc?branchName=master)](https://dev.azure.com/remikalbe0563/sapper-oidc/_build/latest?definitionId=1&branchName=master)
+# Sapper OIDC [![Build Status](https://dev.azure.com/remikalbe0563/sapper-oidc/_apis/build/status/RemiKalbe.sapper-oidc?branchName=master)](https://dev.azure.com/remikalbe0563/sapper-oidc/_build/latest?definitionId=1&branchName=master) ![CodeQL](https://github.com/RemiKalbe/sapper-oidc/workflows/CodeQL/badge.svg)
 
 This library is based on top of [node-openid-client](https://github.com/panva/node-openid-client) and allow you to quickly and effortlessly add OIDC to your sapper application. It is first meant to be used in a first-party scenario where you are the owner of the IDP (i.e you use Okta, Auth0, IdentityServer, Ory Hydra...); That being said, it works with anything that follows the open id connect specification.<br><br>
 🧪 Please note that this library is experimental and I wouldn't recommend you to use it in production for now.<br><br>
