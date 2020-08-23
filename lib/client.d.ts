@@ -8,7 +8,7 @@ export declare function silentRenew(refreshPath: string, callback: any, user?: {
         token_type: string;
     };
 }): Promise<void>;
-export declare function pathGuard(authPath: string, path: string, protectedPath: [ProtectedPath], user?: {
+export declare function pathGuard(authPath: string, path: string, protectedPath: ProtectedPath[], user?: {
     raw: {
         access_token: string;
         id_token: string;
