@@ -4,88 +4,82 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
-- master
+  - master
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-- name: DOCKERIZE_VERSION
-  value: v0.3.0 
-
-
+  - name: DOCKERIZE_VERSION
+    value: v0.3.0
 
 jobs:
-- job: Build_and_test
-  timeoutInMinutes: 110
-  steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '10.x'
-    displayName: 'Install Node.js'
-  - script: git clone https://github.com/ory/hydra.git
-    displayName: 'Clone Ory/hydra'
+  - job: Build_and_test
+    timeoutInMinutes: 110
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: "10.x"
+        displayName: "Install Node.js"
+      - script: git clone https://github.com/ory/hydra.git
+        displayName: "Clone Ory/hydra"
 
-  - script: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-    displayName: 'Install dockerize'
+      - script: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+        displayName: "Install dockerize"
 
-  - script: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
-    displayName: 'Start Ory/Hydra'
-    workingDirectory: $(Build.SourcesDirectory)/hydra
+      - script: docker-compose -f quickstart.yml -f quickstart-postgres.yml up --build -d
+        displayName: "Start Ory/Hydra"
+        workingDirectory: $(Build.SourcesDirectory)/hydra
 
-  - script: dockerize -wait http://localhost:4444/health/ready -timeout 10m
-    displayName: 'Wait for Ory/Hydra'
+      - script: dockerize -wait http://localhost:4444/health/ready -timeout 10m
+        displayName: "Wait for Ory/Hydra"
 
-  - script: |
-      mkdir hydra-client
-      cd hydra-client
-      wget -c https://github.com/ory/hydra/releases/download/v1.6.0/hydra_1.6.0_linux_64-bit.tar.gz -O - | tar -xz
-      ./hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
-    displayName: 'Setting up OIDC client'
+      - script: |
+          mkdir hydra-client
+          cd hydra-client
+          wget -c https://github.com/ory/hydra/releases/download/v1.6.0/hydra_1.6.0_linux_64-bit.tar.gz -O - | tar -xz
+          ./hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
+        displayName: "Setting up OIDC client"
 
-  - script: npm i
-    displayName: 'Installing dependencies'
+      - script: npm i
+        displayName: "Installing dependencies"
 
-  - script: npm build
-    displayName: 'Building'
+      - script: npm build
+        displayName: "Building"
 
-  - script: npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
-    displayName: 'Installing test dependencies'
-    workingDirectory: $(Build.SourcesDirectory)/tests
+      - script: npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
+        displayName: "Installing test dependencies"
+        workingDirectory: $(Build.SourcesDirectory)/tests
 
-  - script: docker run -d -p 6379:6379 redis 
-    displayName: Starting redis
+      - script: docker run -d -p 6379:6379 redis
+        displayName: Starting redis
 
-  - script: dockerize -wait tcp://localhost:6379 -timeout 3m
-    displayName: 'Wait for redis'
+      - script: dockerize -wait tcp://localhost:6379 -timeout 3m
+        displayName: "Wait for redis"
 
-  - script: (CLIENT_ID=client-id CLIENT_SECRET=client-secret npm run dev&)
-    displayName: 'Starting dev server'
-    workingDirectory: $(Build.SourcesDirectory)/tests
+      - script: npm run test
+        displayName: "Starting tests"
+        workingDirectory: $(Build.SourcesDirectory)/tests
+      - task: PublishPipelineArtifact@0
+        displayName: "Publish Screenshots (Cypress)"
+        condition: failed()
+        inputs:
+          artifactName: "screenshots"
+          targetPath: "$(Build.SourcesDirectory)/test/e2e/screenshots"
+        continueOnError: true
 
-  - script: npx cypress run
-    displayName: 'Starting tests'
-    workingDirectory: $(Build.SourcesDirectory)/tests
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish Screenshots (Cypress)'
-    condition: failed()
-    inputs:
-      artifactName: 'screenshots'
-      targetPath: '$(Build.SourcesDirectory)/test/e2e/screenshots'
-    continueOnError: true
+      - task: PublishPipelineArtifact@0
+        displayName: "Publish Videos (Cypress)"
+        condition: failed()
+        inputs:
+          artifactName: "videos"
+          targetPath: "$(Build.SourcesDirectory)/test/e2e/videos"
+        continueOnError: true
 
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish Videos (Cypress)'
-    condition: failed()
-    inputs:
-      artifactName: 'videos'
-      targetPath: '$(Build.SourcesDirectory)/test/e2e/videos'
-    continueOnError: true
-
-  - task: PublishTestResults@2
-    displayName: Publish test results (Cypress)
-    condition: succeededOrFailed()
-    inputs:
-      testRunner: JUnit
-      testResultsFiles: '$(Build.SourcesDirectory)/test/cypress-junit-report.*.xml'
-    continueOnError: true
+      - task: PublishTestResults@2
+        displayName: Publish test results (Cypress)
+        condition: succeededOrFailed()
+        inputs:
+          testRunner: JUnit
+          testResultsFiles: "$(Build.SourcesDirectory)/test/cypress-junit-report.*.xml"
+        continueOnError: true
