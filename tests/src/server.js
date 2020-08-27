@@ -11,8 +11,8 @@ const dev = NODE_ENV === "development";
 (async function () {
   const options = {
     issuerURL: "http://localhost:4444", // See your identity provider documentation
-    clientID: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
+    clientID: "client-id",
+    clientSecret: "client-secret",
     redirectURI: "http://localhost:3001/cb", // This is the URL the idp will redirect the user to. It must be the callback route that you will define bellow.
     silentRedirectURI: "http://localhost:3001/silentcb",
     sessionMaxAge: 60 * 60 * 24 * 7, // How long does a user's session lives for (in seconds)
