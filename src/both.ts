@@ -5,7 +5,7 @@ export interface ProtectedPath {
 // Returns if the user must me redirected to the auth path if no session is found.
 export function isProtectedPath(
   path: string,
-  protectedPaths: [ProtectedPath]
+  protectedPaths: ProtectedPath[]
 ): boolean {
   let is = false;
   for (let el of protectedPaths) {
