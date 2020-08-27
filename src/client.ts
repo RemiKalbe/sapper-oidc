@@ -40,7 +40,7 @@ function refresh(expIn: number, callback: any, refreshPath: string) {
 export function pathGuard(
   authPath: string,
   path: string,
-  protectedPath: [ProtectedPath],
+  protectedPath: ProtectedPath[],
   user?: {
     raw: {
       access_token: string;
