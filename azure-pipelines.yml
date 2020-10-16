@@ -44,7 +44,7 @@ jobs:
       - script: npm i
         displayName: "Installing dependencies"
 
-      - script: npm build
+      - script: npm run build
         displayName: "Building"
 
       - script: npm i && rm -r node_modules/sapper-oidc/lib && cp -r ../lib node_modules/sapper-oidc/lib
@@ -60,26 +60,3 @@ jobs:
       - script: npm run test
         displayName: "Starting tests"
         workingDirectory: $(Build.SourcesDirectory)/tests
-      - task: PublishPipelineArtifact@0
-        displayName: "Publish Screenshots (Cypress)"
-        condition: failed()
-        inputs:
-          artifactName: "screenshots"
-          targetPath: "$(Build.SourcesDirectory)/test/e2e/screenshots"
-        continueOnError: true
-
-      - task: PublishPipelineArtifact@0
-        displayName: "Publish Videos (Cypress)"
-        condition: failed()
-        inputs:
-          artifactName: "videos"
-          targetPath: "$(Build.SourcesDirectory)/test/e2e/videos"
-        continueOnError: true
-
-      - task: PublishTestResults@2
-        displayName: Publish test results (Cypress)
-        condition: succeededOrFailed()
-        inputs:
-          testRunner: JUnit
-          testResultsFiles: "$(Build.SourcesDirectory)/test/cypress-junit-report.*.xml"
-        continueOnError: true
