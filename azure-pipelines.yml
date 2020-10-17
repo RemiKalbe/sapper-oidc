@@ -37,7 +37,7 @@ jobs:
       - script: |
           mkdir hydra-client
           cd hydra-client
-          wget -c https://github.com/ory/hydra/releases/download/v1.8.5/hydra_1.8.5_linux_64-bit.tar.gz -O - | tar -xz
+          wget -c https://github.com/ory/hydra/releases/download/v1.5.2/hydra_1.5.2_linux_64-bit.tar.gz -O - | tar -xz
           ./hydra clients create --endpoint http://127.0.0.1:4445/ --id client-id --secret client-secret -c http://localhost:3001/cb -a openid -a profile -a offline -g refresh_token -g authorization_code -c http://localhost:3001/silentcb
         displayName: "Setting up OIDC client"
 
