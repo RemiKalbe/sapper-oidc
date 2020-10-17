@@ -15,7 +15,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
    const el = await page.$("h1");
    await page.waitForTimeout(1000);
    const t = await page.evaluate(element => element.textContent, el);
-   if (t !== "Yes") throw new Error("No 'yes'");
+   if (t !== "Yes") {
+        console.log("No 'yes'");
+        process.exit(1);
+    }
 
     /*
 
@@ -32,7 +35,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
    await page.waitForTimeout(1000);
    const element = await page.$("h1");
    const text = await page.evaluate(element => element.textContent, element);
-   if (text !== "Yes PPR") throw new Error("No 'Yes PPR'");
+   if (text !== "Yes PPR") {
+        console.log("No 'Yes PPR'");
+        process.exit(1);
+    }
 
    console.log("    Result: OK");
 
@@ -51,7 +57,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
    await page.waitForTimeout(1000);
    const element2 = await page.$("h1");
    const text2 = await page.evaluate(element => element.textContent, element2);
-   if (text2 !== "Yes PPRD") throw new Error("No 'Yes PPRD'");
+   if (text2 !== "Yes PPRD") {
+        console.log("No 'Yes PPRD'");
+        process.exit(1);
+    }
 
    console.log("    Result: OK");
 
@@ -70,7 +79,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
    await page.waitForTimeout(1000);
    const element3 = await page.$("h1");
    const text3 = await page.evaluate(element => element.textContent, element3);
-   if (text3 !== "Yes PPNR") throw new Error("No 'Yes PPNR'");
+   if (text3 !== "Yes PPNR") {
+        console.log("No 'Yes PPNR'");
+        process.exit(1);
+    }
 
    console.log("    Result: OK");
 
@@ -88,7 +100,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
    await page.waitForTimeout(1000);
    const element4 = await page.$("h1");
    const text4 = await page.evaluate(element => element.textContent, element4);
-   if (text4 !== "Yes NPPNR") throw new Error("No 'Yes NPPNR'");
+   if (text4 !== "Yes NPPNR") {
+        console.log("No 'Yes NPPNR'");
+        process.exit(1);
+    }
 
    console.log("    Result: OK");
 

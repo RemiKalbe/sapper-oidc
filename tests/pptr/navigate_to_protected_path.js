@@ -21,7 +21,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element = await page.$("h1");
     const text = await page.evaluate(element => element.textContent, element);
-    if (text !== "Yes PPR") throw new Error("No 'Yes PPR'");
+    if (text !== "Yes PPR") {
+        console.log("No 'Yes PPR'");
+        process.exit(1);
+    }
 
     console.log("    Result: OK");
 
@@ -40,7 +43,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element2 = await page.$("h1");
     const text2 = await page.evaluate(element => element.textContent, element2);
-    if (text2 !== "Yes PPRD") throw new Error("No 'Yes PPRD'");
+    if (text2 !== "Yes PPRD") {
+        console.log("No 'Yes PPRD'");
+        process.exit(1);
+    }
 
     console.log("    Result: OK");
 
@@ -59,7 +65,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element3 = await page.$("h1");
     const text3 = await page.evaluate(element => element.textContent, element3);
-    if (text3 !== "Yes PPNR") throw new Error("No 'Yes PPNR'");
+    if (text3 !== "Yes PPNR") {
+        console.log("No 'Yes PPNR'");
+        process.exit(1);
+    }
 
     console.log("    Result: OK");
 
@@ -77,7 +86,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element4 = await page.$("h1");
     const text4 = await page.evaluate(element => element.textContent, element4);
-    if (text4 !== "No NPPNR") throw new Error("No 'No NPPNR'");
+    if (text4 !== "No NPPNR") {
+        console.log("No 'No NPPNR'");
+        process.exit(1);
+    }
 
     console.log("    Result: OK");
     

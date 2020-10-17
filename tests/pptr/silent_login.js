@@ -15,7 +15,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element = await page.$("h1");
     const text = await page.evaluate(element => element.textContent, element);
-    if (text !== "Yes") throw new Error("No 'yes'");
+    if (text !== "Yes") {
+        console.log("No 'yes'");
+        process.exit(1);
+    }
     
     await page.deleteCookie({name: "SID", url: "http://localhost:3001"});
     await page.goto('http://localhost:3001', {waitUntil: 'networkidle2'});
@@ -23,7 +26,10 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     await page.waitForSelector('h1', {timeout: 3000});
     const element2 = await page.$("h1");
     const text2 = await page.evaluate(element => element.textContent, element2);
-    if (text2 !== "Yes") throw new Error("No 'yes'");
+    if (text2 !== "Yes") {
+        console.log("No 'yes'");
+        process.exit(1);
+    }
     console.log("    Result: OK");
 
     await browser.close();
