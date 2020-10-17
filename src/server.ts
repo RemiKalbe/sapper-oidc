@@ -80,7 +80,10 @@ export class SapperOIDCClient {
     this.debug = options.debug ? options.debug : false;
   }
   async init() {
-    const discoveredIssuer = await Issuer.discover(this.issuerURL);
+    const discoveredIssuer = await Issuer.discover(this.issuerURL).catch((err) => {
+      log("Unable to dicover issuer");
+      throw new Error(err);
+    });
     let redirect_uris = [this.redirectURI];
     if (this.silentRedirectURI) redirect_uris.push(this.silentRedirectURI);
     this.client = new discoveredIssuer.Client({
