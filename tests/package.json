@@ -7,15 +7,17 @@
     "build": "sapper build --legacy",
     "export": "sapper export --legacy",
     "start": "node __sapper__/build",
-    "cy:run": "cypress run",
-    "cy:open": "cypress open",
-    "test": "node ./pptr/click_on_login.js && node ./pptr/click_on_protected_path && node ./pptr/navigate_to_protected_path.js && node ./pptr/navigate_while_logged_in.js && node ./pptr/silent_login.js && node ./pptr/should_refresh.js"
+    "test:server": "sapper dev",
+    "test:run": "wait-on http://localhost:3001/ && node ./pptr/click_on_login.js && node ./pptr/click_on_protected_path && node ./pptr/navigate_to_protected_path.js && node ./pptr/navigate_while_logged_in.js && node ./pptr/silent_login.js && node ./pptr/should_refresh.js",
+    "test": "run-p --race test:*"
   },
   "dependencies": {
     "compression": "^1.7.1",
+    "delay-cli": "^1.1.0",
     "polka": "next",
     "puppeteer": "^5.3.1",
-    "sirv": "^0.4.0"
+    "sirv": "^0.4.0",
+    "wait-on": "^5.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
