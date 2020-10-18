@@ -7,20 +7,12 @@ async function handleLoginAndConsent(page, rememberMe, rememberConsent) {
         });
     }
     await page.click('#accept');
-    try {
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 2000 });
-        const url = await page.url();
-        if(url.includes("consent")){
-            await consent(page, rememberConsent);
-        }
-    }catch(e){
-        const url = await page.url();
-        if(url.includes("consent")){
-            await consent(page, rememberConsent);
-        }else{
-            throw new Error(e)
-        }
-    } 
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 2000 }).catch((e) => {console.log(e)});;
+    const url = await page.url();
+    if(url.includes("consent")){
+        await consent(page, rememberConsent);
+    }
+   
 }
 
 async function consent(page, rememberConsent){
@@ -35,7 +27,7 @@ async function consent(page, rememberConsent){
         });
     }
     await page.click('#accept');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch((e) => {console.log(e)});;
 }
 
 module.exports = handleLoginAndConsent;

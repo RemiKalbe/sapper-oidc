@@ -17,7 +17,7 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
     
     await page.goto('http://localhost:3001', {waitUntil: 'networkidle2'});
     await page.click('#PPR');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch((e) => {console.log(e)});;
     await handleLoginAndConsent(page, false, false);
 
     await page.waitForSelector('h1', {timeout: 3000});
@@ -41,7 +41,7 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
         
     await page.goto('http://localhost:3001', {waitUntil: 'networkidle2'});
     await page.click('#PPRD');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch((e) => {console.log(e)});;
     await handleLoginAndConsent(page, false, false);
 
     await page.waitForSelector('h1', {timeout: 3000});
@@ -65,7 +65,7 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
             
     await page.goto('http://localhost:3001', {waitUntil: 'networkidle2'});
     await page.click('#PPNR');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch((e) => {console.log(e)});;
     await handleLoginAndConsent(page, false, false);
 
     await page.waitForSelector('h1', {timeout: 3000});

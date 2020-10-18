@@ -9,7 +9,7 @@ const handleLoginAndConsent = require("./helpers/handleLoginAndConsent");
 
    await page.goto('http://localhost:3001', {waitUntil: 'networkidle2'});
    await page.click('#login');
-   await page.waitForNavigation({ waitUntil: 'networkidle2' });
+   await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch((e) => {console.log(e)});;
    await handleLoginAndConsent(page, false, false);
 
    const el = await page.$("h1");
