@@ -211,7 +211,7 @@ export class SapperOIDCClient {
               try {
                 const redirectURL = this.client.authorizationUrl({
                   scope: this.scope,
-                  code_challenge_method: "S256",
+                  //code_challenge_method: "S256",
                   redirect_uri: this.redirectURI,
                   state,
                 });
@@ -370,7 +370,7 @@ export class SapperOIDCClient {
             await this.redis.set(stateID, state);
             const redirectURL = `${this.client.authorizationUrl({
               scope: this.scope,
-              code_challenge_method: "S256",
+              //code_challenge_method: "S256",
               state,
               redirect_uri: this.silentRedirectURI,
             })}&prompt=none`;
