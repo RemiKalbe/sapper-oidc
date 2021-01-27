@@ -5,7 +5,7 @@ import {
   ResponseType,
   TokenSet,
 } from "openid-client";
-import * as redis from "@remikalbe/async-redis";
+import { createNodeRedisClient } from 'handy-redis';
 import { parse as parseCookie, serialize as serializeCookie } from "cookie";
 import { v4 as uuidv4 } from "uuid";
 import { ProtectedPath, isProtectedPath } from "./both";
@@ -67,8 +67,8 @@ export class SapperOIDCClient {
     this.sessionMaxAge = options.sessionMaxAge;
     this.authRequestMaxAge = options.authRequestMaxAge;
     this.redis = options.redisURL
-      ? redis.createClient({ url: options.redisURL })
-      : redis.createClient();
+      ? createNodeRedisClient({ url: options.redisURL })
+      : createNodeRedisClient();
     this.authPath = options.authPath;
     this.protectedPaths = options.protectedPaths;
     this.callbackPath = options.callbackPath;
