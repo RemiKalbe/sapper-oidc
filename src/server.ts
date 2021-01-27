@@ -93,7 +93,7 @@ export class SapperOIDCClient {
       response_types: this.responseTypes,
     });
     this.ok = true;
-    this.redis.on("error", function (err: any) {
+    this.redis.nodeRedis.on("error", function (err: any) {
       console.log("Error " + err);
     });
   }
