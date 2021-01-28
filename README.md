@@ -54,7 +54,6 @@ export default {
 
 ```bash
 npm i --save-dev sapper-oidc
-npm i redis
 ```
 
 ### Method 2
