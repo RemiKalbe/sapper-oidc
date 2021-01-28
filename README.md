@@ -27,8 +27,12 @@ It has the following features<br>
 
 ## Installation
 
-🚧 You must install https://www.npmjs.com/package/rollup-plugin-node-externals<br>
-🚧 And https://www.npmjs.com/package/@rollup/plugin-json<br><br>
+You have two way of installing this library.
+
+### Method 1
+
+Install https://www.npmjs.com/package/rollup-plugin-node-externals (`node-externals` can mess up some libraries, if you have issues after installing `node-externals` use method 2<br>
+and https://www.npmjs.com/package/@rollup/plugin-json<br><br>
 `rollup.config.js`
 
 ```js
@@ -42,6 +46,30 @@ export default {
         /* IMPORTANT, externals() needs to be at
         the top of the plugins array*/
         plugins: [externals(), json()]
+        ......
+    }
+    ......
+}
+```
+
+```bash
+npm i --save-dev sapper-oidc
+npm i redis
+```
+
+### Method 2
+
+Install https://www.npmjs.com/package/@rollup/plugin-json<br><br>
+`rollup.config.js`
+
+```js
+import json from "@rollup/plugin-json";
+
+export default {
+    ......
+    server: {
+        ......
+        plugins: [... json() ...]
         ......
     }
     ......
