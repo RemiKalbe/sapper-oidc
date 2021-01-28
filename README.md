@@ -50,6 +50,7 @@ export default {
 
 ```bash
 npm i --save-dev sapper-oidc
+npm i redis
 ```
 
 ### Create a confirguration file
