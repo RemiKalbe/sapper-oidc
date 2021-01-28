@@ -27,7 +27,7 @@ It has the following features<br>
 
 ## Installation
 
-You have two way of installing this library.
+You have two ways of installing this library.
 
 ### Method 1
 
